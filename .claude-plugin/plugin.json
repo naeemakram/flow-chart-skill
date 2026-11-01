@@ -6,8 +6,16 @@
     "name": "Naeem Malik",
     "url": "https://github.com/naeemakram"
   },
-  "homepage": "https://naeemakram.github.io/flow-chart-skill/",
+  "homepage": "https://github.com/naeemakram/flow-chart-skill",
   "repository": "https://github.com/naeemakram/flow-chart-skill",
   "license": "MIT",
-  "keywords": ["diagram", "flowchart", "architecture", "system-design", "documentation", "sequence-diagram", "uml"]
+  "keywords": [
+    "diagram",
+    "flowchart",
+    "architecture",
+    "system-design",
+    "documentation",
+    "sequence-diagram",
+    "uml"
+  ]
 }
