@@ -1,0 +1,855 @@
+{
+ "title": "How requests sends one HTTP call",
+ "short_title": "Requests Call Flow",
+ "lead": "What happens between `requests.get(url)` and the `Response` you get back, traced from the psf/requests source. The library is about 6,400 lines of Python; this page is the part you need to reason about timeouts, redirects, credentials and connection reuse.",
+ "status": "As built: psf/requests main at commit 3c7baaa (26 Oct 2026). Timeout and redirect behaviour checked by probe against requests 2.34.2.",
+ "sections": [
+  {
+   "heading": "The life of one call",
+   "blocks": [
+    {
+     "type": "p",
+     "text": "Every call goes through a `Session`, even `requests.get()`: it creates a throwaway session for that one call. The session merges your arguments with its own settings and the environment, hands the request to an adapter chosen by URL prefix, and the adapter hands it to urllib3."
+    },
+    {
+     "type": "figure",
+     "kind": "graph",
+     "title": "From requests.get() to Response",
+     "alt": "A top-to-bottom flow: build Request, prepare it, merge environment, pick adapter, send through urllib3, run hooks and save cookies, follow redirects, then download the body unless streaming.",
+     "caption": "The main path runs down the middle. Red boxes on the left are where the call ends in an exception; the redirect loop on the right sends again through the same adapter.",
+     "legend": {
+      "danger": "Raises an exception",
+      "attention": "Behaviour that surprises people",
+      "good": "What you get back"
+     },
+     "nodes": [
+      {
+       "key": "get",
+       "at": [
+        1,
+        0
+       ],
+       "shape": "terminal",
+       "title": "requests.get(url, ...)",
+       "tip": "A module-level helper. It opens a brand-new Session in a `with` block and closes it on return, so no connection is reused between two `requests.get()` calls.",
+       "source": "src/requests/api.py#with sessions.Session() as session:",
+       "tone": "attention",
+       "id": "B1"
+      },
+      {
+       "key": "build",
+       "at": [
+        1,
+        1
+       ],
+       "title": "Build a Request",
+       "lines": [
+        "method upper-cased, data defaults to {}"
+       ],
+       "tip": "Session.request() packs your arguments into a plain `Request` object. Nothing is encoded or merged yet.",
+       "source": "src/requests/sessions.py#req = Request(",
+       "id": "B2"
+      },
+      {
+       "key": "prep",
+       "at": [
+        1,
+        2
+       ],
+       "title": "Prepare it",
+       "lines": [
+        "merge session headers, params, cookies, auth"
+       ],
+       "tip": "prepare_request() merges per-call values over the session's. If no auth was given and trust_env is on, it looks in ~/.netrc. The result is a PreparedRequest with the URL, headers and body encoded.",
+       "source": "src/requests/sessions.py#auth = get_netrc_auth(url)",
+       "id": "B3"
+      },
+      {
+       "key": "env",
+       "at": [
+        1,
+        3
+       ],
+       "title": "Merge environment settings",
+       "lines": [
+        "proxies, CA bundle, stream, verify, cert"
+       ],
+       "tip": "With trust_env on, HTTP(S)_PROXY / NO_PROXY and REQUESTS_CA_BUNDLE or CURL_CA_BUNDLE are read here. A per-call value always wins over the session's, which wins over nothing.",
+       "source": "src/requests/sessions.py#os.environ.get(\"REQUESTS_CA_BUNDLE\")",
+       "id": "B4"
+      },
+      {
+       "key": "adapter",
+       "at": [
+        1,
+        4
+       ],
+       "title": "Pick adapter by URL prefix",
+       "tip": "The session holds adapters keyed by prefix, longest first. New sessions mount one HTTPAdapter for `https://` and one for `http://`; `mount()` lets you add a custom one, e.g. with retries.",
+       "source": "src/requests/sessions.py#def get_adapter",
+       "id": "B5"
+      },
+      {
+       "key": "noadapter",
+       "at": [
+        0,
+        4
+       ],
+       "tone": "danger",
+       "title": "InvalidSchema",
+       "tip": "No mounted prefix matches, for example `ftp://` or a typo like `htps://`.",
+       "source": "src/requests/sessions.py#raise InvalidSchema",
+       "id": "B6"
+      },
+      {
+       "key": "send",
+       "at": [
+        1,
+        5
+       ],
+       "title": "HTTPAdapter.send()",
+       "lines": [
+        "get pooled connection, urllib3 urlopen()"
+       ],
+       "tip": "Gets a connection from urllib3's pool (10 per host by default) and sends. Retries default to 0, and with no timeout argument it waits for the server forever.",
+       "source": "src/requests/adapters.py#resp = conn.urlopen(",
+       "tone": "attention",
+       "id": "B7"
+      },
+      {
+       "key": "neterr",
+       "at": [
+        0,
+        5
+       ],
+       "tone": "danger",
+       "title": "ConnectionError, Timeout, SSLError ...",
+       "tip": "urllib3's errors are translated into requests' own exception classes, so callers only need to catch `requests.exceptions.RequestException`.",
+       "source": "src/requests/adapters.py#raise ConnectionError(err, request=request)",
+       "id": "B8"
+      },
+      {
+       "key": "hooks",
+       "at": [
+        1,
+        6
+       ],
+       "title": "Run response hooks, save cookies",
+       "tip": "Your `hooks={'response': ...}` functions run here, before redirects are followed. Set-Cookie headers go into the session's cookie jar so the next request sends them.",
+       "source": "src/requests/sessions.py#r = dispatch_hook(\"response\", hooks, r, **kwargs)",
+       "id": "B9"
+      },
+      {
+       "key": "redir",
+       "at": [
+        1,
+        7
+       ],
+       "shape": "decision",
+       "title": "Redirect, and allowed?",
+       "tip": "A redirect is a 301, 302, 303, 307 or 308 with a Location header. allow_redirects defaults to True for every method except HEAD.",
+       "source": "src/requests/sessions.py#if allow_redirects:",
+       "id": "B10"
+      },
+      {
+       "key": "follow",
+       "at": [
+        2,
+        7
+       ],
+       "title": "Rebuild request for new URL",
+       "lines": [
+        "see the redirect figure below"
+       ],
+       "tip": "resolve_redirects() copies the request, changes method, body and headers for the new URL, then sends it again with allow_redirects=False. Each response joins `r.history`.",
+       "source": "src/requests/sessions.py#def resolve_redirects",
+       "id": "B11"
+      },
+      {
+       "key": "stream",
+       "at": [
+        1,
+        8
+       ],
+       "shape": "decision",
+       "title": "stream=True?",
+       "tip": "Without stream, the whole body is read into memory before you get the Response. With stream, the connection stays checked out until you read the body or close the response.",
+       "source": "src/requests/sessions.py#if not stream:",
+       "id": "B12"
+      },
+      {
+       "key": "download",
+       "at": [
+        2,
+        8
+       ],
+       "title": "Download the whole body",
+       "tip": "Touching `r.content` reads the socket to the end and returns the connection to the pool.",
+       "source": "src/requests/sessions.py#r.content",
+       "id": "B13"
+      },
+      {
+       "key": "resp",
+       "at": [
+        1,
+        9
+       ],
+       "shape": "terminal",
+       "tone": "good",
+       "title": "Response",
+       "tip": "Carries status, headers, body (or an open stream), `elapsed`, and `history` of any redirects. A 4xx or 5xx is still a normal Response: call `raise_for_status()` to turn it into an exception.",
+       "id": "B14"
+      }
+     ],
+     "edges": [
+      {
+       "from": "get",
+       "to": "build",
+       "tip": "Your keyword arguments are passed through unchanged to Session.request().",
+       "id": "L1"
+      },
+      {
+       "from": "build",
+       "to": "prep",
+       "tip": "The Request object, still unencoded.",
+       "id": "L2"
+      },
+      {
+       "from": "prep",
+       "to": "env",
+       "tip": "A PreparedRequest: exact bytes of URL, headers and body.",
+       "id": "L3"
+      },
+      {
+       "from": "env",
+       "to": "adapter",
+       "tip": "Send settings: timeout, allow_redirects, proxies, stream, verify, cert.",
+       "id": "L4"
+      },
+      {
+       "from": "adapter",
+       "to": "noadapter",
+       "label": "no match",
+       "tone": "danger",
+       "tip": "Raised before any network activity.",
+       "id": "L5"
+      },
+      {
+       "from": "adapter",
+       "to": "send",
+       "label": "match",
+       "tip": "The adapter is chosen once per send, so a redirect to another scheme can use a different adapter.",
+       "id": "L6"
+      },
+      {
+       "from": "send",
+       "to": "neterr",
+       "label": "fails",
+       "tone": "danger",
+       "tip": "DNS failure, refused connection, TLS failure, or a timeout you set.",
+       "id": "L7"
+      },
+      {
+       "from": "send",
+       "to": "hooks",
+       "label": "status line + headers",
+       "tip": "The body is not read yet: urllib3 is called with preload_content=False.",
+       "id": "L8"
+      },
+      {
+       "from": "hooks",
+       "to": "redir",
+       "tip": "The response after hooks may have been replaced by a hook.",
+       "id": "L9"
+      },
+      {
+       "from": "redir",
+       "to": "follow",
+       "label": "yes",
+       "tip": "Up to max_redirects (30) times, then TooManyRedirects.",
+       "id": "L10"
+      },
+      {
+       "from": "follow",
+       "to": "send",
+       "label": "send again",
+       "from_side": "top",
+       "to_side": "right",
+       "tip": "Same adapter path, same timeout and proxies, with allow_redirects=False so the loop stays in resolve_redirects().",
+       "id": "L11"
+      },
+      {
+       "from": "redir",
+       "to": "stream",
+       "label": "no",
+       "tip": "The final response, with every earlier one in `history`.",
+       "id": "L12"
+      },
+      {
+       "from": "stream",
+       "to": "download",
+       "label": "no",
+       "tip": "The default.",
+       "id": "L13"
+      },
+      {
+       "from": "download",
+       "to": "resp",
+       "to_side": "right",
+       "tip": "Body is in memory; connection is back in the pool.",
+       "id": "L14"
+      },
+      {
+       "from": "stream",
+       "to": "resp",
+       "label": "yes",
+       "tip": "Body still on the socket. Use `with` or `r.close()` so the connection is released.",
+       "id": "L15"
+      }
+     ],
+     "id": "F1"
+    }
+   ],
+   "id": "S1"
+  },
+  {
+   "heading": "Following a redirect",
+   "blocks": [
+    {
+     "type": "p",
+     "text": "Redirects are where requests quietly changes your request. It follows browsers rather than the letter of the RFC, and it protects credentials when the host changes."
+    },
+    {
+     "type": "figure",
+     "kind": "graph",
+     "title": "One pass of resolve_redirects()",
+     "alt": "A loop: check redirect count, rewrite the method, drop the body for most codes, drop Authorization if the host changed, re-add cookies and proxies, send again.",
+     "caption": "Each pass rewrites a copy of the previous request. The amber steps change what your server receives.",
+     "legend": {
+      "attention": "Changes what the server receives",
+      "danger": "Raises an exception"
+     },
+     "nodes": [
+      {
+       "key": "target",
+       "at": [
+        1,
+        0
+       ],
+       "shape": "terminal",
+       "title": "Response with Location",
+       "tip": "get_redirect_target() reads the Location header only when the status is a redirect code.",
+       "source": "src/requests/sessions.py#location = resp.headers[\"location\"]",
+       "id": "B1"
+      },
+      {
+       "key": "count",
+       "at": [
+        1,
+        1
+       ],
+       "shape": "decision",
+       "title": "30 redirects already?",
+       "tip": "Counted per call. The old response body is read and its connection released first, so long chains don't exhaust the pool.",
+       "source": "src/requests/models.py#DEFAULT_REDIRECT_LIMIT: int = 30",
+       "id": "B2"
+      },
+      {
+       "key": "toomany",
+       "at": [
+        2,
+        1
+       ],
+       "tone": "danger",
+       "title": "TooManyRedirects",
+       "tip": "The exception carries the last response, so you can inspect where the loop went.",
+       "source": "src/requests/sessions.py#raise TooManyRedirects(",
+       "id": "B3"
+      },
+      {
+       "key": "method",
+       "at": [
+        1,
+        2
+       ],
+       "tone": "attention",
+       "title": "Rewrite the method",
+       "lines": [
+        "303 → GET; 302 → GET; 301 POST → GET"
+       ],
+       "tip": "Browser behaviour, not the RFC: a POST answered with 302 is re-sent as a GET. HEAD is never changed. Only 307 and 308 keep the original method.",
+       "source": "src/requests/sessions.py#if response.status_code == codes.found and method != \"HEAD\":",
+       "id": "B4"
+      },
+      {
+       "key": "body",
+       "at": [
+        1,
+        3
+       ],
+       "tone": "attention",
+       "title": "Drop the body unless 307 / 308",
+       "tip": "Content-Length, Content-Type and Transfer-Encoding are removed with it. For 307/308 a file body is rewound so it can be sent again.",
+       "source": "src/requests/sessions.py#purged_headers = (\"Content-Length\", \"Content-Type\", \"Transfer-Encoding\")",
+       "id": "B5"
+      },
+      {
+       "key": "auth",
+       "at": [
+        1,
+        4
+       ],
+       "tone": "attention",
+       "title": "Strip Authorization if host changed",
+       "lines": [
+        "http→https on standard ports keeps it"
+       ],
+       "tip": "Stops a redirect from leaking your token to another site. A change of port or scheme also strips it, except the http:80 → https:443 upgrade. Netrc credentials for the new host are added back if trust_env is on.",
+       "source": "src/requests/sessions.py#if old_parsed.hostname != new_parsed.hostname:",
+       "id": "B6"
+      },
+      {
+       "key": "cookies",
+       "at": [
+        1,
+        5
+       ],
+       "title": "Rebuild cookies and proxies",
+       "tip": "The old Cookie header is dropped and rebuilt from the jar, including cookies the redirect response just set. Proxy settings are recomputed for the new URL.",
+       "source": "src/requests/sessions.py#headers.pop(\"Cookie\", None)",
+       "id": "B7"
+      },
+      {
+       "key": "again",
+       "at": [
+        1,
+        6
+       ],
+       "shape": "terminal",
+       "title": "Send again, no auto-redirect",
+       "tip": "Calls Session.send() with allow_redirects=False. If the answer is another redirect, the loop goes round again.",
+       "source": "src/requests/sessions.py#allow_redirects=False,",
+       "id": "B8"
+      }
+     ],
+     "edges": [
+      {
+       "from": "target",
+       "to": "count",
+       "tip": "The response joins history before the count is checked.",
+       "id": "L1"
+      },
+      {
+       "from": "count",
+       "to": "toomany",
+       "label": "yes",
+       "tone": "danger",
+       "tip": "Limit set by Session.max_redirects.",
+       "id": "L2"
+      },
+      {
+       "from": "count",
+       "to": "method",
+       "label": "no",
+       "tip": "Works on a copy of the previous PreparedRequest.",
+       "id": "L3"
+      },
+      {
+       "from": "method",
+       "to": "body",
+       "tip": "A method rewritten to GET almost always loses its body here too.",
+       "id": "L4"
+      },
+      {
+       "from": "body",
+       "to": "auth",
+       "tip": "Header changes continue on the same copy.",
+       "id": "L5"
+      },
+      {
+       "from": "auth",
+       "to": "cookies",
+       "tip": "Credentials settled; now session state.",
+       "id": "L6"
+      },
+      {
+       "from": "cookies",
+       "to": "again",
+       "tip": "The rewritten request goes back through the adapter path.",
+       "id": "L7"
+      },
+      {
+       "from": "again",
+       "to": "count",
+       "label": "another redirect",
+       "from_side": "left",
+       "to_side": "left",
+       "dash": true,
+       "tip": "The loop continues while each response is itself a redirect.",
+       "id": "L8"
+      }
+     ],
+     "id": "F2"
+    },
+    {
+     "type": "figure",
+     "kind": "sequence",
+     "title": "Worked example: a token meets a cross-host redirect",
+     "alt": "Your code posts with a bearer token to api.example.com, gets a 302 to cdn.example.net, and requests re-sends as GET without the token.",
+     "caption": "Invented hosts and token. The same thing was observed in a local probe between 127.0.0.1 and localhost.",
+     "participants": [
+      {
+       "key": "you",
+       "title": "Your code",
+       "tip": "Calls requests.post() with an Authorization header.",
+       "id": "B1"
+      },
+      {
+       "key": "sess",
+       "title": "Session",
+       "tone": "hub",
+       "tip": "The throwaway session made by requests.post().",
+       "id": "B2"
+      },
+      {
+       "key": "api",
+       "title": "api.example.com",
+       "tip": "The host you meant to talk to.",
+       "id": "B3"
+      },
+      {
+       "key": "cdn",
+       "title": "cdn.example.net",
+       "tip": "A different host named in the Location header.",
+       "id": "B4"
+      }
+     ],
+     "steps": [
+      {
+       "from": "you",
+       "to": "sess",
+       "label": "post(url, json=..., Authorization: Bearer abc123)",
+       "tip": "Token and JSON body set per call.",
+       "id": "L1"
+      },
+      {
+       "from": "sess",
+       "to": "api",
+       "label": "POST /export + token + body",
+       "tip": "First request goes out exactly as you built it.",
+       "id": "L2"
+      },
+      {
+       "from": "api",
+       "to": "sess",
+       "label": "302 Location: https://cdn.example.net/file",
+       "tone": "attention",
+       "dash": true,
+       "tip": "A redirect to another host.",
+       "id": "L3"
+      },
+      {
+       "at": "sess",
+       "text": "302 → method becomes GET, body dropped",
+       "tip": "rebuild_method() and the purged headers step.",
+       "id": "N1"
+      },
+      {
+       "at": "sess",
+       "text": "hostname changed → Authorization removed",
+       "tip": "should_strip_auth() returned True.",
+       "with_prev": false,
+       "id": "N2"
+      },
+      {
+       "from": "sess",
+       "to": "cdn",
+       "label": "GET /file, no token, no body",
+       "tone": "attention",
+       "tip": "The new host never sees your credentials.",
+       "id": "L4"
+      },
+      {
+       "from": "cdn",
+       "to": "sess",
+       "label": "200 OK",
+       "dash": true,
+       "tip": "Final response.",
+       "id": "L5"
+      },
+      {
+       "from": "sess",
+       "to": "you",
+       "label": "Response 200, history = [302]",
+       "dash": true,
+       "tip": "Check `r.history` or `r.url` to see the redirect happened.",
+       "id": "L6"
+      }
+     ],
+     "id": "F3"
+    }
+   ],
+   "id": "S2"
+  },
+  {
+   "heading": "Where each setting can come from",
+   "blocks": [
+    {
+     "type": "p",
+     "text": "A per-call argument beats a Session attribute, which beats the environment. But not every setting exists at every level, and the gaps explain some common bugs."
+    },
+    {
+     "type": "figure",
+     "kind": "venn",
+     "title": "Per-call, Session or environment?",
+     "alt": "Three overlapping sets: per-call arguments, Session attributes and environment variables, with each setting placed in the region of the levels that can set it.",
+     "caption": "Timeout sits alone: there is no session-wide or environment timeout, so every call needs its own.",
+     "sets": [
+      {
+       "key": "call",
+       "title": "Per-call argument",
+       "tip": "Keyword arguments to get(), post(), request() and friends.",
+       "id": "V1"
+      },
+      {
+       "key": "sess",
+       "title": "Session attribute",
+       "tip": "Set once on a Session object and applied to every request it sends.",
+       "id": "V2"
+      },
+      {
+       "key": "env",
+       "title": "Environment",
+       "tip": "Read only when Session.trust_env is True, which is the default.",
+       "id": "V3"
+      }
+     ],
+     "regions": [
+      {
+       "in": [
+        "call"
+       ],
+       "tip": "Must be passed on every call.",
+       "items": [
+        {
+         "text": "timeout",
+         "tip": "No default: without it a call can wait forever. Probed: still waiting after 4 s on a silent server.",
+         "source": "src/requests/sessions.py#timeout: _t.TimeoutType = None,",
+         "id": "i1"
+        },
+        {
+         "text": "allow_redirects",
+         "tip": "True for every helper except head().",
+         "source": "src/requests/sessions.py#kwargs.setdefault(\"allow_redirects\", False)",
+         "id": "i2"
+        },
+        {
+         "text": "data, json, files",
+         "tip": "The body is always per call.",
+         "id": "i3"
+        }
+       ],
+       "id": "A1"
+      },
+      {
+       "in": [
+        "sess"
+       ],
+       "tip": "Only configurable on a Session.",
+       "items": [
+        {
+         "text": "max_redirects",
+         "tip": "Default 30.",
+         "source": "src/requests/sessions.py#self.max_redirects = DEFAULT_REDIRECT_LIMIT",
+         "id": "i1"
+        },
+        {
+         "text": "adapters (mount)",
+         "tip": "The only way to turn on retries: mount an HTTPAdapter(max_retries=...).",
+         "source": "src/requests/sessions.py#self.mount(\"https://\", HTTPAdapter())",
+         "id": "i2"
+        }
+       ],
+       "id": "A2"
+      },
+      {
+       "in": [
+        "env"
+       ],
+       "empty": "Nothing is environment-only: every environment value can be overridden in code.",
+       "id": "A3"
+      },
+      {
+       "in": [
+        "call",
+        "sess"
+       ],
+       "tip": "Merged: per-call keys win, session keys fill in.",
+       "items": [
+        {
+         "text": "headers, params, cookies",
+         "tip": "Dictionaries are merged key by key; set a key to None per call to remove a session value.",
+         "source": "src/requests/sessions.py#params=merge_setting(request.params, self.params),",
+         "id": "i1"
+        },
+        {
+         "text": "stream, cert, hooks",
+         "tip": "Simple values: the per-call one wins if given.",
+         "id": "i2"
+        }
+       ],
+       "id": "A4"
+      },
+      {
+       "in": [
+        "call",
+        "env"
+       ],
+       "empty": "Every environment-backed setting is also a Session attribute.",
+       "id": "A5"
+      },
+      {
+       "in": [
+        "sess",
+        "env"
+       ],
+       "empty": "Every environment-backed setting can also be passed per call.",
+       "id": "A6"
+      },
+      {
+       "in": [
+        "call",
+        "sess",
+        "env"
+       ],
+       "tip": "All three levels; environment fills in only what code left unset.",
+       "items": [
+        {
+         "text": "proxies",
+         "tip": "HTTP_PROXY, HTTPS_PROXY, NO_PROXY.",
+         "source": "src/requests/sessions.py#env_proxies = get_environ_proxies(url, no_proxy=no_proxy)",
+         "id": "i1"
+        },
+        {
+         "text": "verify (CA bundle)",
+         "tip": "REQUESTS_CA_BUNDLE or CURL_CA_BUNDLE, only when verify is True or unset.",
+         "source": "src/requests/sessions.py#os.environ.get(\"CURL_CA_BUNDLE\")",
+         "id": "i2"
+        },
+        {
+         "text": "auth",
+         "tip": "From ~/.netrc when no auth is set in code.",
+         "source": "src/requests/sessions.py#auth = get_netrc_auth(url)",
+         "id": "i3"
+        }
+       ],
+       "id": "A7"
+      }
+     ],
+     "id": "F4"
+    }
+   ],
+   "id": "S3"
+  },
+  {
+   "heading": "Defaults that surprise people",
+   "blocks": [
+    {
+     "type": "table",
+     "title": "Defaults worth knowing",
+     "headers": [
+      "Default",
+      "Value",
+      "What it means for you"
+     ],
+     "rows": [
+      {
+       "cells": [
+        "timeout",
+        "None",
+        "A silent server hangs your program. Always pass `timeout=`."
+       ],
+       "source": "src/requests/adapters.py#resolved_timeout = TimeoutSauce(connect=timeout, read=timeout)",
+       "id": "R1"
+      },
+      {
+       "cells": [
+        "Connection reuse with requests.get()",
+        "None",
+        "Each call opens and closes its own Session. Use one Session for many calls to the same host."
+       ],
+       "source": "src/requests/api.py#with sessions.Session() as session:",
+       "id": "R2"
+      },
+      {
+       "cells": [
+        "Retries",
+        "0",
+        "One failed connect is final. Mount an HTTPAdapter with max_retries to retry."
+       ],
+       "source": "src/requests/adapters.py#DEFAULT_RETRIES = 0",
+       "id": "R3"
+      },
+      {
+       "cells": [
+        "Pool size per host",
+        "10",
+        "More concurrent threads than this on one Session open extra connections that are thrown away after use."
+       ],
+       "source": "src/requests/adapters.py#DEFAULT_POOLSIZE = 10",
+       "id": "R4"
+      },
+      {
+       "cells": [
+        "Redirect limit",
+        "30",
+        "Then TooManyRedirects."
+       ],
+       "source": "src/requests/models.py#DEFAULT_REDIRECT_LIMIT: int = 30",
+       "id": "R5"
+      },
+      {
+       "cells": [
+        "POST answered by 302",
+        "Re-sent as GET, no body",
+        "Use 307/308 on the server if the method must survive."
+       ],
+       "source": "src/requests/sessions.py#if response.status_code == codes.found and method != \"HEAD\":",
+       "id": "R6"
+      },
+      {
+       "cells": [
+        "trust_env",
+        "True",
+        "Environment proxies, CA bundle and ~/.netrc apply silently. Set `session.trust_env = False` to ignore them."
+       ],
+       "source": "src/requests/sessions.py#self.trust_env = True",
+       "id": "R7"
+      }
+     ],
+     "id": "T1"
+    }
+   ],
+   "id": "S4"
+  }
+ ],
+ "_id_counters": {
+  "S": 4,
+  "F": 4,
+  "T": 1,
+  "F1.B": 14,
+  "F1.L": 15,
+  "F2.B": 8,
+  "F2.L": 8,
+  "F3.B": 4,
+  "F3.L": 6,
+  "F3.N": 2,
+  "F4.V": 3,
+  "F4.A": 7,
+  "F4.A1.i": 3,
+  "F4.A2.i": 2,
+  "F4.A4.i": 2,
+  "F4.A7.i": 3,
+  "T1.R": 7
+ }
+}
