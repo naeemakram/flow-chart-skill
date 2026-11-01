@@ -1,0 +1,30 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  render-example:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python: ["3.9", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Fetch psf/requests at the commit the example describes
+        run: |
+          git init -q /tmp/requests
+          git -C /tmp/requests fetch -q --depth 1 https://github.com/psf/requests.git 3c7baaa05ab4aa49cc819ce3a819d260de19c157
+          git -C /tmp/requests checkout -q FETCH_HEAD
+      - name: Render the example and check every source quote
+        run: python skills/flow-chart/scripts/render.py examples/requests/requests.spec.json -o /tmp/requests.html --check-sources /tmp/requests --strict
+      - name: Spec already holds every ID
+        run: git diff --exit-code examples/requests/requests.spec.json

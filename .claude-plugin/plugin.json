@@ -1,0 +1,13 @@
+{
+  "name": "flow-chart",
+  "version": "1.0.0",
+  "description": "Draw how a codebase really works as interactive flow charts, sequence, state, class and Venn diagrams, where every box and line has a stable ID you can discuss with Claude.",
+  "author": {
+    "name": "Naeem Malik",
+    "url": "https://github.com/naeemakram"
+  },
+  "homepage": "https://naeemakram.github.io/flow-chart-skill/",
+  "repository": "https://github.com/naeemakram/flow-chart-skill",
+  "license": "MIT",
+  "keywords": ["diagram", "flowchart", "architecture", "system-design", "documentation", "sequence-diagram", "uml"]
+}
