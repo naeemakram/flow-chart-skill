@@ -3,6 +3,11 @@ name: Release
 on:
   push:
     tags: ["v*"]
+  release:
+    types: [published]
+
+concurrency:
+  group: release-${{ github.ref_name }}
 
 permissions:
   contents: write
@@ -18,7 +23,12 @@ jobs:
           test "$GITHUB_REF_NAME" = "$want" || { echo "Tag $GITHUB_REF_NAME but plugin.json says $want"; exit 1; }
       - name: Build flow-chart.zip for the Claude apps
         run: cd skills && zip -r -X ../flow-chart.zip flow-chart -x '*/__pycache__/*'
-      - name: Publish the release
+      - name: Publish the release, or add the zip to one made in the browser
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "$GITHUB_REF_NAME" flow-chart.zip --title "flow-chart $GITHUB_REF_NAME" --generate-notes
+        run: |
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            gh release upload "$GITHUB_REF_NAME" flow-chart.zip --clobber
+          else
+            gh release create "$GITHUB_REF_NAME" flow-chart.zip --title "flow-chart $GITHUB_REF_NAME" --generate-notes
+          fi
