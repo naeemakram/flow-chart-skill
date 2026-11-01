@@ -143,6 +143,10 @@ docs/images/               screenshots used in this README
 .github/workflows/         CI (render + source check) and release zip
 ```
 
+## About the author
+
+Made by Naeem Malik. I teach Playwright and test automation at [testautomationtv.com/pw](https://testautomationtv.com/pw). Understanding a system before you test it is half the job, which is why I built this skill.
+
 ## License
 
 [MIT](LICENSE). The example describes [psf/requests](https://github.com/psf/requests) (Apache-2.0), quoting short fragments of its source as references.
