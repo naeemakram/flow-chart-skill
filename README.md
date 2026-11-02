@@ -50,6 +50,24 @@ Hover any object to see why it exists, what it waits for and what can go wrong. 
 
 [**Open it live**](https://htmlpreview.github.io/?https://github.com/naeemakram/flow-chart-skill/blob/main/examples/requests/requests.html) and hover anything, or download [`requests.html`](examples/requests/requests.html) and open it in a browser.
 
+## Second example: how Playwright Test runs your tests
+
+[`examples/playwright/`](examples/playwright/) maps the Playwright test runner (about 27,000 lines of TypeScript): 3 figures, 1 table, 64 objects and 25 source quotes checked in CI. Four behaviours were confirmed by running @playwright/test 1.64.1:
+
+- After any failed test, the worker process is thrown away and a new one starts.
+- The retry runs straight away in that new worker, together with the rest of the file.
+- So **`beforeAll` and worker-scoped fixtures run again** after every failure.
+- `beforeEach` and test fixtures spend the test's 30 s timeout; `beforeAll` gets its own.
+
+| | |
+|---|---|
+| ![From npx playwright test to the report](docs/images/playwright-run.png) | ![What runs around one test, and which timeout each step spends](docs/images/playwright-one-test.png) |
+| **The whole run.** Phases, test groups, and the dispatcher loop. | **One test.** Which steps spend the test timeout, and what a failure tears down. |
+
+![Sequence: one flaky test, one worker](docs/images/playwright-flaky-sequence.png)
+
+[**Open it live**](https://htmlpreview.github.io/?https://github.com/naeemakram/flow-chart-skill/blob/main/examples/playwright/playwright.html), or download [`playwright.html`](examples/playwright/playwright.html).
+
 ## Install
 
 ### Claude Code, as a plugin (recommended)
@@ -139,6 +157,7 @@ skills/flow-chart/
   assets/                  page CSS and JS, inlined into every page
 examples/                  example pages
   requests/                the psf/requests example: spec + page
+  playwright/              the Playwright test runner example: spec + page
 docs/images/               screenshots used in this README
 .github/workflows/         CI (render + source check) and release zip
 ```

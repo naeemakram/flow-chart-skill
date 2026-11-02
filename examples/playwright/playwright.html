@@ -1,0 +1,409 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Playwright Test Run</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600&family=Source+Sans+3:wght@400;600&family=JetBrains+Mono:wght@400&display=swap"><style>/* One reading column with figures wider than the text, like an operations manual. */
+:root {
+  --bg: #f3f6f7; --fg: #17242b; --muted: #55666f; --line: #8fa1aa; --box: #ffffff; --rule: #d3dde1; --ink: #1c5a86; --pick: #c2410c;
+  --plain-bg: #ffffff; --plain: #8fa1aa;
+  --hub-bg: #dfeaf2; --hub: #1c5a86;
+  --attention-bg: #fdf0dc; --attention: #b45309;
+  --hold-bg: #e9e6f6; --hold: #51419c;
+  --good-bg: #dff3e6; --good: #16713f;
+  --danger-bg: #fbe4e1; --danger: #b3261e;
+  --muted-bg: #e8ecee; --muted-ln: #8fa1aa;
+  --display: "Barlow Semi Condensed", "Arial Narrow", Arial, sans-serif; --body: "Source Sans 3", "Segoe UI", Arial, sans-serif; --mono: "JetBrains Mono", Consolas, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #11191e; --fg: #e4ecef; --muted: #9db0b9; --line: #6d808a; --box: #1b262c; --rule: #2d3b42; --ink: #7cc0ec; --pick: #fb923c;
+  --plain-bg: #1b262c; --plain: #6d808a;
+  --hub-bg: #1c3343; --hub: #7cc0ec;
+  --attention-bg: #3a2a14; --attention: #f4b35e;
+  --hold-bg: #2a2648; --hold: #b9aef2;
+  --good-bg: #15362a; --good: #6fd69a;
+  --danger-bg: #40201d; --danger: #f2a198;
+  --muted-bg: #242f35; --muted-ln: #6d808a;
+  color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #11191e; --fg: #e4ecef; --muted: #9db0b9; --line: #6d808a; --box: #1b262c; --rule: #2d3b42; --ink: #7cc0ec; --pick: #fb923c;
+  --plain-bg: #1b262c; --plain: #6d808a;
+  --hub-bg: #1c3343; --hub: #7cc0ec;
+  --attention-bg: #3a2a14; --attention: #f4b35e;
+  --hold-bg: #2a2648; --hold: #b9aef2;
+  --good-bg: #15362a; --good: #6fd69a;
+  --danger-bg: #40201d; --danger: #f2a198;
+  --muted-bg: #242f35; --muted-ln: #6d808a;
+  color-scheme: dark }
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html { scroll-padding-top: 64px; }
+body { margin: 0; background: var(--bg); color: var(--fg); font: 17px/1.55 var(--body); }
+main { max-width: 1100px; margin: 0 auto; padding: 32px 16px 96px; display: grid; gap: 44px; }
+section { display: grid; gap: 14px; min-width: 0; }
+h1, h2 { font-family: var(--display); font-weight: 600; line-height: 1.1; text-wrap: balance; margin: 0; }
+h1 { font-size: clamp(2.2rem, 6vw, 3.4rem); }
+h2 { font-size: 1.7rem; color: var(--ink); }
+p { margin: 0; max-width: 68ch; }
+.lead { font-size: 1.15rem; }
+.status { color: var(--muted); font-size: 0.95rem; margin-top: 8px; }
+code { font: 0.86em var(--mono); }
+figure { margin: 0; display: grid; gap: 8px; min-width: 0; }
+figcaption { color: var(--muted); font-size: 0.95rem; max-width: 72ch; }
+.scroll, .table { overflow-x: auto; }
+.tablewrap { display: grid; gap: 8px; min-width: 0; }
+
+.toolbar { position: sticky; top: 0; z-index: 5; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; padding: 8px 16px; background: var(--bg); border-bottom: 1px solid var(--rule); font-size: 0.92rem; }
+.tgl { display: inline-flex; gap: 6px; align-items: center; cursor: pointer; }
+#findbox { font: 0.88rem var(--mono); width: 270px; max-width: 100%; padding: 4px 8px; border: 1px solid var(--line); border-radius: 4px; background: var(--box); color: var(--fg); }
+.btn { font: 600 0.88rem var(--body); padding: 4px 10px; border: 1px solid var(--line); border-radius: 4px; background: var(--box); color: var(--fg); cursor: pointer; }
+.btn:hover { border-color: var(--ink); color: var(--ink); }
+.btn.small { font-size: 0.8rem; padding: 2px 8px; margin-left: auto; white-space: nowrap; }
+.chip { font: 0.74rem var(--mono); padding: 1px 6px; border: 1px solid var(--rule); border-radius: 3px; background: var(--box); color: var(--muted); cursor: pointer; white-space: nowrap; vertical-align: middle; }
+.chip:hover { border-color: var(--ink); color: var(--ink); }
+.fighead { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.figtitle { font: 600 1.05rem var(--display); }
+
+svg { user-select: none; display: block; width: 100%; height: auto; font-family: var(--body); margin-inline: auto; }
+svg .t { fill: var(--fg); font-size: 13px; }
+svg .b { font-weight: 600; }
+svg .ttl { font-size: 13.5px; }
+svg .l { fill: var(--muted); font-size: 12.5px; }
+svg .st { fill: var(--muted); font-size: 11.5px; font-style: italic; }
+svg .m { fill: var(--fg); font: 11.5px var(--mono); }
+svg .bdg { fill: var(--muted); font: 9.5px var(--mono); }
+svg .labbg { fill: var(--bg); opacity: 0.88; }
+svg .rule { stroke: var(--line); }
+svg .mhit { fill: transparent; }
+svg .grp { fill: none; stroke: var(--line); stroke-dasharray: 3 4; }
+svg .life { stroke: var(--rule); stroke-width: 1.5; }
+svg .hit { stroke: transparent; stroke-width: 14; fill: none; }
+svg .ln { stroke: var(--line); stroke-width: 1.5; }
+svg .ln.dash { stroke-dasharray: 6 4; }
+svg .shape { fill: var(--plain-bg); stroke: var(--plain); }
+.tone-hub .shape { fill: var(--hub-bg); stroke: var(--hub); }
+.tone-attention .shape { fill: var(--attention-bg); stroke: var(--attention); }
+.tone-hold .shape { fill: var(--hold-bg); stroke: var(--hold); }
+.tone-good .shape { fill: var(--good-bg); stroke: var(--good); }
+.tone-danger .shape { fill: var(--danger-bg); stroke: var(--danger); }
+.tone-muted .shape { fill: var(--muted-bg); stroke: var(--muted-ln); }
+.line.tone-hub .ln { stroke: var(--hub); }
+.line.tone-attention .ln { stroke: var(--attention); stroke-width: 1.8; }
+.line.tone-hold .ln { stroke: var(--hold); }
+.line.tone-good .ln { stroke: var(--good); stroke-width: 2; }
+.line.tone-danger .ln { stroke: var(--danger); }
+.line.tone-muted .ln { stroke: var(--rule); stroke-dasharray: 2 5; }
+.line.tone-hub .l { fill: var(--hub); font-weight: 600; }
+.line.tone-attention .l { fill: var(--attention); font-weight: 600; }
+.line.tone-hold .l { fill: var(--hold); font-weight: 600; }
+.line.tone-good .l { fill: var(--good); font-weight: 600; }
+.line.tone-danger .l { fill: var(--danger); font-weight: 600; }
+svg .mk-plain, svg .mk-muted { fill: var(--line); }
+svg .mk-hub { fill: var(--hub); } svg .mk-attention { fill: var(--attention); } svg .mk-hold { fill: var(--hold); }
+svg .mk-good { fill: var(--good); } svg .mk-danger { fill: var(--danger); }
+svg .mk-hollow { fill: var(--box); stroke: var(--line); stroke-width: 1.3; }
+svg .mk-open { fill: none; stroke: var(--line); stroke-width: 1.5; }
+
+/* Venn: circles tint the page, and invisible clipped regions above them take the pointer. */
+.vset .shape { fill-opacity: 0.5; pointer-events: none; }
+.vname { font-size: 15px; }
+svg .vempty { font-style: italic; }
+.vhit { fill: transparent; pointer-events: all; }
+.region:hover .vhit, .region:focus-visible .vhit, .region.rel .vhit { fill: var(--ink); fill-opacity: 0.14; }
+.region.picked .vhit { fill: var(--pick); fill-opacity: 0.25; }
+.region.flash .vhit { animation: flashregion 0.7s ease-in-out 3; }
+@keyframes flashregion { 50% { fill: var(--pick); fill-opacity: 0.4; } }
+
+/* Objects: hover, keyboard focus, related, collected, found. */
+.obj { cursor: pointer; outline: none; }
+.obj:hover > .shape, .obj:focus-visible > .shape { stroke-width: 2.5; }
+.obj:hover > .ln, .obj:focus-visible > .ln { stroke-width: 3; }
+.member:hover .mhit, .member:focus-visible .mhit { fill: var(--rule); }
+.group:hover > .grp, .group:focus-visible > .grp { stroke: var(--ink); stroke-width: 1.5; }
+.obj.rel > .shape { stroke: var(--ink); stroke-width: 2.5; }
+.obj.rel > .ln { stroke: var(--ink); stroke-width: 2.5; }
+.obj.picked > .shape, .obj.picked > .ln, .obj.picked > .grp { stroke: var(--pick); stroke-width: 3; }
+.member.picked .mhit { fill: var(--pick); opacity: 0.25; }
+.obj.flash > .shape, .obj.flash > .ln { animation: flash 0.7s ease-in-out 3; }
+tr[data-oid] { outline: none; }
+tr[data-oid]:hover td, tr[data-oid]:focus-visible td { background: var(--rule); }
+tr.flash td { animation: flashrow 0.7s ease-in-out 3; }
+tr.picked td { box-shadow: inset 0 -2px 0 var(--pick); }
+@keyframes flash { 50% { stroke: var(--pick); stroke-width: 5; } }
+@keyframes flashrow { 50% { background: var(--pick); } }
+@media (prefers-reduced-motion: reduce) { .obj.flash > .shape, .obj.flash > .ln, tr.flash td { animation: none; stroke: var(--pick); stroke-width: 4; } }
+body.noids svg .bdg, body.noids .idcell, body.noids .idh { display: none; }
+
+table { border-collapse: collapse; width: 100%; min-width: 560px; font-size: 0.97rem; }
+th, td { text-align: left; vertical-align: top; padding: 9px 12px 9px 0; border-bottom: 1px solid var(--rule); }
+th { font-family: var(--display); font-weight: 600; font-size: 1.05rem; color: var(--muted); }
+.idcell { width: 1%; white-space: nowrap; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 0.88rem; color: var(--muted); }
+.lg { display: inline-flex; align-items: center; gap: 6px; }
+.sw { width: 14px; height: 14px; border-radius: 3px; border: 1px solid var(--plain); background: var(--plain-bg); }
+.sw.tone-hub { background: var(--hub-bg); border-color: var(--hub); }
+.sw.tone-attention { background: var(--attention-bg); border-color: var(--attention); }
+.sw.tone-hold { background: var(--hold-bg); border-color: var(--hold); }
+.sw.tone-good { background: var(--good-bg); border-color: var(--good); }
+.sw.tone-danger { background: var(--danger-bg); border-color: var(--danger); }
+.sw.tone-muted { background: var(--muted-bg); border-color: var(--muted-ln); }
+.index { font-size: 0.92rem; }
+.index summary { cursor: pointer; color: var(--muted); }
+
+.tip { position: fixed; z-index: 20; max-width: 340px; padding: 9px 12px; background: var(--fg); color: var(--bg); border-radius: 5px; font-size: 0.88rem; line-height: 1.4; pointer-events: none; box-shadow: 0 4px 14px rgb(0 0 0 / 0.3); }
+.tip .tid { font: 0.76rem var(--mono); opacity: 0.8; }
+.tip .tname { font-weight: 600; display: block; margin: 2px 0; overflow-wrap: anywhere; }
+.tip .tsrc { font: 0.74rem var(--mono); opacity: 0.8; display: block; margin-top: 5px; overflow-wrap: anywhere; }
+.tip .thint { display: block; margin-top: 5px; font-size: 0.76rem; opacity: 0.7; }
+.toast { position: fixed; left: 50%; bottom: 72px; transform: translateX(-50%); z-index: 30; max-width: min(92vw, 560px); padding: 7px 14px; background: var(--ink); color: var(--bg); border-radius: 5px; font-size: 0.9rem; opacity: 0; transition: opacity 0.15s; pointer-events: none; overflow-wrap: anywhere; }
+.toast.on { opacity: 1; }
+.tray { position: fixed; left: 0; right: 0; bottom: 0; z-index: 6; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 10px 16px; background: var(--box); border-top: 2px solid var(--pick); font-size: 0.92rem; }
+#traytext { font: 0.8rem var(--mono); flex: 1 1 200px; overflow-wrap: anywhere; }
+@media print { .toolbar, .tray, .btn, .chip, .index { display: none; } svg .bdg { display: inline; } }
+</style></head><body><div class="toolbar" role="toolbar" aria-label="Working with object IDs"><label class="tgl"><input type="checkbox" id="showids" checked> Show IDs</label><label class="tgl"><input type="checkbox" id="many"> Collect several</label><form id="find"><input id="findbox" type="search" placeholder="Find an ID, like F2.B7" aria-label="Find an object by ID" autocomplete="off"></form><button id="copyall" class="btn" type="button">Copy all IDs</button></div><main><section class="intro"><h1>How Playwright Test runs your tests</h1><p class="lead">What happens between <code>npx playwright test</code> and the report, traced from the microsoft/playwright source (the test runner alone is about 27,000 lines of TypeScript). Read it to understand flaky retries, timeouts that fire in hooks, and why a <code>beforeAll</code> can run more than once.</p><p class="status">As built: microsoft/playwright main at commit 820620c (1 Nov 2026). Worker restart, retry placement, hook timeouts and beforeAll re-runs checked by probe against @playwright/test 1.64.1.</p></section><section id="S1"><h2><button class="chip" data-copy="S1">S1</button> The whole run</h2><p>The runner process never executes your tests. It loads and filters them, splits them into groups, and hands each group to a worker process. Projects that depend on other projects wait in later phases.</p><figure id="F1" data-oid="F1"><div class="fighead"><button class="chip" data-copy="F1">F1</button><span class="figtitle">From npx playwright test to the report</span><button class="btn small" data-copy-scope="F1" type="button">Copy all in F1</button></div><div class="scroll"><svg viewBox="28 28 924 1184" style="min-width:720px;max-width:924px" role="group" aria-label="Top to bottom: load config, global setup, load and filter test files, plan phases by project dependency, split into test groups, dispatch groups to workers, report."><defs><marker id="F1-a-plain" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="mk-plain" d="M0 0L10 5L0 10z"/></marker><marker id="F1-a-hub" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="mk-hub" d="M0 0L10 5L0 10z"/></marker><marker id="F1-a-attention" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="mk-attention" d="M0 0L10 5L0 10z"/></marker><marker id="F1-a-hold" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="mk-hold" d="M0 0L10 5L0 10z"/></marker><marker id="F1-a-good" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="mk-good" d="M0 0L10 5L0 10z"/></marker><marker id="F1-a-danger" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="mk-danger" d="M0 0L10 5L0 10z"/></marker><marker id="F1-a-muted" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="mk-muted" d="M0 0L10 5L0 10z"/></marker><marker id="F1-tri" viewBox="0 0 14 14" refX="13" refY="7" markerWidth="11" markerHeight="11" orient="auto-start-reverse"><path class="mk-hollow" d="M1 1L13 7L1 13z"/></marker><marker id="F1-dia-f" viewBox="0 0 16 10" refX="1" refY="5" markerWidth="13" markerHeight="9" orient="auto-start-reverse"><path class="mk-plain" d="M1 5L8 1L15 5L8 9z"/></marker><marker id="F1-dia-h" viewBox="0 0 16 10" refX="1" refY="5" markerWidth="13" markerHeight="9" orient="auto-start-reverse"><path class="mk-hollow" d="M1 5L8 1L15 5L8 9z"/></marker><marker id="F1-open" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path class="mk-open" d="M1 1L9 5L1 9"/></marker></defs><g class="obj node tone-plain" data-oid="F1.B1" tabindex="0" role="button" aria-label="F1.B1 npx playwright test"><rect class="shape" x="380" y="40" width="220" height="60" rx="30.0"/><text class="bdg" x="490.0" y="53" text-anchor="middle">F1.B1</text><text class="t b" x="490.0" y="71" text-anchor="middle">npx playwright test</text></g><g class="obj node tone-plain" data-oid="F1.B2" tabindex="0" role="button" aria-label="F1.B2 Global setup"><rect class="shape" x="380" y="180" width="220" height="80" rx="4"/><text class="bdg" x="387" y="193">F1.B2</text><text class="t b" x="490.0" y="211" text-anchor="middle">Global setup</text><text class="t" x="490.0" y="227" text-anchor="middle">clear output dirs, start webServer,</text><text class="t" x="490.0" y="243" text-anchor="middle">globalSetup</text></g><g class="obj node tone-plain" data-oid="F1.B3" tabindex="0" role="button" aria-label="F1.B3 Load and filter test files"><rect class="shape" x="380" y="340" width="220" height="80" rx="4"/><text class="bdg" x="387" y="353">F1.B3</text><text class="t b" x="490.0" y="371" text-anchor="middle">Load and filter test files</text><text class="t" x="490.0" y="387" text-anchor="middle">in the runner process</text></g><g class="obj node tone-plain" data-oid="F1.B4" tabindex="0" role="button" aria-label="F1.B4 Plan phases by project dependencies"><rect class="shape" x="380" y="500" width="220" height="80" rx="4"/><text class="bdg" x="387" y="513">F1.B4</text><text class="t b" x="490.0" y="531" text-anchor="middle">Plan phases by project</text><text class="t b" x="490.0" y="547" text-anchor="middle">dependencies</text></g><g class="obj node tone-danger" data-oid="F1.B5" tabindex="0" role="button" aria-label="F1.B5 Dependents of a failed project skipped"><rect class="shape" x="40" y="500" width="220" height="80" rx="4"/><text class="bdg" x="47" y="513">F1.B5</text><text class="t b" x="150.0" y="531" text-anchor="middle">Dependents of a failed project</text><text class="t b" x="150.0" y="547" text-anchor="middle">skipped</text></g><g class="obj node tone-attention" data-oid="F1.B6" tabindex="0" role="button" aria-label="F1.B6 Split into test groups"><rect class="shape" x="380" y="660" width="220" height="80" rx="4"/><text class="bdg" x="387" y="673">F1.B6</text><text class="t b" x="490.0" y="691" text-anchor="middle">Split into test groups</text><text class="t" x="490.0" y="707" text-anchor="middle">by default: one group per file</text></g><g class="obj node tone-plain" data-oid="F1.B7" tabindex="0" role="button" aria-label="F1.B7 Dispatch groups to workers"><rect class="shape" x="380" y="820" width="220" height="80" rx="4"/><text class="bdg" x="387" y="833">F1.B7</text><text class="t b" x="490.0" y="851" text-anchor="middle">Dispatch groups to workers</text><text class="t" x="490.0" y="867" text-anchor="middle">prefer a free worker with the same</text><text class="t" x="490.0" y="883" text-anchor="middle">hash</text></g><g class="obj node tone-plain" data-oid="F1.B8" tabindex="0" role="button" aria-label="F1.B8 Worker runs the group"><rect class="shape" x="720" y="820" width="220" height="80" rx="4"/><text class="bdg" x="727" y="833">F1.B8</text><text class="t b" x="830.0" y="851" text-anchor="middle">Worker runs the group</text><text class="t" x="830.0" y="867" text-anchor="middle">see the next figure</text></g><g class="obj node tone-attention" data-oid="F1.B9" tabindex="0" role="button" aria-label="F1.B9 Failure: worker stopped, rest re-queued"><rect class="shape" x="720" y="980" width="220" height="80" rx="4"/><text class="bdg" x="727" y="993">F1.B9</text><text class="t b" x="830.0" y="1011" text-anchor="middle">Failure: worker stopped, rest</text><text class="t b" x="830.0" y="1027" text-anchor="middle">re-queued</text></g><g class="obj node tone-good" data-oid="F1.B10" tabindex="0" role="button" aria-label="F1.B10 Report"><rect class="shape" x="380" y="1140" width="220" height="60" rx="30.0"/><text class="bdg" x="490.0" y="1153" text-anchor="middle">F1.B10</text><text class="t b" x="490.0" y="1171" text-anchor="middle">Report</text></g><g class="obj line tone-plain" data-oid="F1.L1" tabindex="0" role="button" aria-label="F1.L1  from npx playwright test to Global setup"><polyline class="hit" points="490,100 490,180" fill="none"/><polyline class="ln" points="490,100 490,180" fill="none" marker-end="url(#F1-a-plain)"/><rect class="labbg" x="496.0" y="132.0" width="37" height="16" rx="2"/><text class="bdg" x="500.0" y="142.0">F1.L1</text></g><g class="obj line tone-plain" data-oid="F1.L2" tabindex="0" role="button" aria-label="F1.L2  from Global setup to Load and filter test files"><polyline class="hit" points="490,260 490,340" fill="none"/><polyline class="ln" points="490,260 490,340" fill="none" marker-end="url(#F1-a-plain)"/><rect class="labbg" x="496.0" y="292.0" width="37" height="16" rx="2"/><text class="bdg" x="500.0" y="302.0">F1.L2</text></g><g class="obj line tone-plain" data-oid="F1.L3" tabindex="0" role="button" aria-label="F1.L3  from Load and filter test files to Plan phases by project dependencies"><polyline class="hit" points="490,420 490,500" fill="none"/><polyline class="ln" points="490,420 490,500" fill="none" marker-end="url(#F1-a-plain)"/><rect class="labbg" x="496.0" y="452.0" width="37" height="16" rx="2"/><text class="bdg" x="500.0" y="462.0">F1.L3</text></g><g class="obj line tone-danger" data-oid="F1.L4" tabindex="0" role="button" aria-label="F1.L4 dependency failed from Plan phases by project dependencies to Dependents of a failed project skipped"><polyline class="hit" points="380,540 260,540" fill="none"/><polyline class="ln" points="380,540 260,540" fill="none" marker-end="url(#F1-a-danger)"/><rect class="labbg" x="265.0" y="505.0" width="110" height="31" rx="2"/><text class="bdg" x="269.0" y="515.0">F1.L4</text><text class="l" x="269.0" y="529.0">dependency failed</text></g><g class="obj line tone-plain" data-oid="F1.L5" tabindex="0" role="button" aria-label="F1.L5  from Plan phases by project dependencies to Split into test groups"><polyline class="hit" points="490,580 490,660" fill="none"/><polyline class="ln" points="490,580 490,660" fill="none" marker-end="url(#F1-a-plain)"/><rect class="labbg" x="496.0" y="612.0" width="37" height="16" rx="2"/><text class="bdg" x="500.0" y="622.0">F1.L5</text></g><g class="obj line tone-plain" data-oid="F1.L6" tabindex="0" role="button" aria-label="F1.L6  from Split into test groups to Dispatch groups to workers"><polyline class="hit" points="490,740 490,800 480,800 480,820" fill="none"/><polyline class="ln" points="490,740 490,800 480,800 480,820" fill="none" marker-end="url(#F1-a-plain)"/><rect class="labbg" x="496.0" y="762.0" width="37" height="16" rx="2"/><text class="bdg" x="500.0" y="772.0">F1.L6</text></g><g class="obj line tone-plain" data-oid="F1.L7" tabindex="0" role="button" aria-label="F1.L7 group from Dispatch groups to workers to Worker runs the group"><polyline class="hit" points="600,860 720,860" fill="none"/><polyline class="ln" points="600,860 720,860" fill="none" marker-end="url(#F1-a-plain)"/><rect class="labbg" x="640.5" y="825.0" width="39" height="31" rx="2"/><text class="bdg" x="644.5" y="835.0">F1.L7</text><text class="l" x="644.5" y="849.0">group</text></g><g class="obj line tone-plain" data-oid="F1.L8" tabindex="0" role="button" aria-label="F1.L8 all passed from Worker runs the group to Dispatch groups to workers"><polyline class="hit" points="830,820 830,800 500,800 500,820" fill="none"/><polyline class="ln dash" points="830,820 830,800 500,800 500,820" fill="none" marker-end="url(#F1-a-plain)"/><rect class="labbg" x="631.5" y="765.0" width="67" height="31" rx="2"/><text class="bdg" x="635.5" y="775.0">F1.L8</text><text class="l" x="635.5" y="789.0">all passed</text></g><g class="obj line tone-attention" data-oid="F1.L9" tabindex="0" role="button" aria-label="F1.L9 a test failed from Worker runs the group to Failure: worker stopped, rest re-queued"><polyline class="hit" points="830,900 830,980" fill="none"/><polyline class="ln" points="830,900 830,980" fill="none" marker-end="url(#F1-a-attention)"/><rect class="labbg" x="836.0" y="924.5" width="75" height="31" rx="2"/><text class="bdg" x="840.0" y="934.5">F1.L9</text><text class="l" x="840.0" y="948.5">a test failed</text></g><g class="obj line tone-plain" data-oid="F1.L10" tabindex="0" role="button" aria-label="F1.L10 new worker from Failure: worker stopped, rest re-queued to Dispatch groups to workers"><polyline class="hit" points="720,1020 490,1020 490,900" fill="none"/><polyline class="ln" points="720,1020 490,1020 490,900" fill="none" marker-end="url(#F1-a-plain)"/><rect class="labbg" x="568.0" y="985.0" width="74" height="31" rx="2"/><text class="bdg" x="572.0" y="995.0">F1.L10</text><text class="l" x="572.0" y="1009.0">new worker</text></g><g class="obj line tone-plain" data-oid="F1.L11" tabindex="0" role="button" aria-label="F1.L11 queue empty from Dispatch groups to workers to Report"><polyline class="hit" points="380,860 360,860 360,1170 380,1170" fill="none"/><polyline class="ln" points="380,860 360,860 360,1170 380,1170" fill="none" marker-end="url(#F1-a-plain)"/><rect class="labbg" x="366.0" y="999.5" width="80" height="31" rx="2"/><text class="bdg" x="370.0" y="1009.5">F1.L11</text><text class="l" x="370.0" y="1023.5">queue empty</text></g></svg></div><div class="legend"><span class="lg"><i class="sw tone-attention"></i>Behaviour that surprises people</span><span class="lg"><i class="sw tone-danger"></i>Tests that will not run</span><span class="lg"><i class="sw tone-good"></i>What you get back</span></div><figcaption>The main path runs down the middle. A failing setup project stops its dependents on the left; the dispatcher loop on the right is shown in detail in the next figures.</figcaption><details class="index"><summary>All objects in F1 (22)</summary><div class="table"><table><thead><tr><th>ID</th><th>Type</th><th>Name</th></tr></thead><tbody><tr><td><button class="chip" data-copy="F1">F1</button></td><td>figure</td><td>From npx playwright test to the report</td></tr><tr><td><button class="chip" data-copy="F1.B1">F1.B1</button></td><td>box</td><td>npx playwright test</td></tr><tr><td><button class="chip" data-copy="F1.B2">F1.B2</button></td><td>box</td><td>Global setup</td></tr><tr><td><button class="chip" data-copy="F1.B3">F1.B3</button></td><td>box</td><td>Load and filter test files</td></tr><tr><td><button class="chip" data-copy="F1.B4">F1.B4</button></td><td>box</td><td>Plan phases by project dependencies</td></tr><tr><td><button class="chip" data-copy="F1.B5">F1.B5</button></td><td>box</td><td>Dependents of a failed project skipped</td></tr><tr><td><button class="chip" data-copy="F1.B6">F1.B6</button></td><td>box</td><td>Split into test groups</td></tr><tr><td><button class="chip" data-copy="F1.B7">F1.B7</button></td><td>box</td><td>Dispatch groups to workers</td></tr><tr><td><button class="chip" data-copy="F1.B8">F1.B8</button></td><td>box</td><td>Worker runs the group</td></tr><tr><td><button class="chip" data-copy="F1.B9">F1.B9</button></td><td>box</td><td>Failure: worker stopped, rest re-queued</td></tr><tr><td><button class="chip" data-copy="F1.B10">F1.B10</button></td><td>box</td><td>Report</td></tr><tr><td><button class="chip" data-copy="F1.L1">F1.L1</button></td><td>line</td><td>npx playwright test to Global setup</td></tr><tr><td><button class="chip" data-copy="F1.L2">F1.L2</button></td><td>line</td><td>Global setup to Load and filter test files</td></tr><tr><td><button class="chip" data-copy="F1.L3">F1.L3</button></td><td>line</td><td>Load and filter test files to Plan phases by project dependencies</td></tr><tr><td><button class="chip" data-copy="F1.L4">F1.L4</button></td><td>line</td><td>dependency failed</td></tr><tr><td><button class="chip" data-copy="F1.L5">F1.L5</button></td><td>line</td><td>Plan phases by project dependencies to Split into test groups</td></tr><tr><td><button class="chip" data-copy="F1.L6">F1.L6</button></td><td>line</td><td>Split into test groups to Dispatch groups to workers</td></tr><tr><td><button class="chip" data-copy="F1.L7">F1.L7</button></td><td>line</td><td>group</td></tr><tr><td><button class="chip" data-copy="F1.L8">F1.L8</button></td><td>line</td><td>all passed</td></tr><tr><td><button class="chip" data-copy="F1.L9">F1.L9</button></td><td>line</td><td>a test failed</td></tr><tr><td><button class="chip" data-copy="F1.L10">F1.L10</button></td><td>line</td><td>new worker</td></tr><tr><td><button class="chip" data-copy="F1.L11">F1.L11</button></td><td>line</td><td>queue empty</td></tr></tbody></table></div></details></figure></section><section id="S2"><h2><button class="chip" data-copy="S2">S2</button> One test inside a worker</h2><p>Each test gets a timeout (30 seconds by default). Not every hook spends from it: <code>beforeEach</code> and test fixtures do, <code>beforeAll</code> and <code>afterAll</code> get their own, and the after-hooks get an extra allowance.</p><figure id="F2" data-oid="F2"><div class="fighead"><button class="chip" data-copy="F2">F2</button><span class="figtitle">What runs around one test</span><button class="btn small" data-copy-scope="F2" type="button">Copy all in F2</button></div><div class="scroll"><svg viewBox="-2 28 614 1004" style="min-width:614px;max-width:614px" role="group" aria-label="Top to bottom: beforeAll with its own timeout, then beforeEach and fixtures sharing the test timeout, the test function, after-each hooks with an extra timeout, afterAll when leaving the suite, and on failure the worker shuts down."><defs><marker id="F2-a-plain" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="mk-plain" d="M0 0L10 5L0 10z"/></marker><marker id="F2-a-hub" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="mk-hub" d="M0 0L10 5L0 10z"/></marker><marker id="F2-a-attention" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="mk-attention" d="M0 0L10 5L0 10z"/></marker><marker id="F2-a-hold" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="mk-hold" d="M0 0L10 5L0 10z"/></marker><marker id="F2-a-good" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="mk-good" d="M0 0L10 5L0 10z"/></marker><marker id="F2-a-danger" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="mk-danger" d="M0 0L10 5L0 10z"/></marker><marker id="F2-a-muted" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="mk-muted" d="M0 0L10 5L0 10z"/></marker><marker id="F2-tri" viewBox="0 0 14 14" refX="13" refY="7" markerWidth="11" markerHeight="11" orient="auto-start-reverse"><path class="mk-hollow" d="M1 1L13 7L1 13z"/></marker><marker id="F2-dia-f" viewBox="0 0 16 10" refX="1" refY="5" markerWidth="13" markerHeight="9" orient="auto-start-reverse"><path class="mk-plain" d="M1 5L8 1L15 5L8 9z"/></marker><marker id="F2-dia-h" viewBox="0 0 16 10" refX="1" refY="5" markerWidth="13" markerHeight="9" orient="auto-start-reverse"><path class="mk-hollow" d="M1 5L8 1L15 5L8 9z"/></marker><marker id="F2-open" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path class="mk-open" d="M1 1L9 5L1 9"/></marker></defs><g class="obj node tone-plain" data-oid="F2.B1" tabindex="0" role="button" aria-label="F2.B1 Next test in the group"><rect class="shape" x="40" y="40" width="220" height="60" rx="30.0"/><text class="bdg" x="150.0" y="53" text-anchor="middle">F2.B1</text><text class="t b" x="150.0" y="71" text-anchor="middle">Next test in the group</text></g><g class="obj node tone-good" data-oid="F2.B2" tabindex="0" role="button" aria-label="F2.B2 beforeAll hooks"><rect class="shape" x="40" y="180" width="220" height="80" rx="4"/><text class="bdg" x="47" y="193">F2.B2</text><text class="t b" x="150.0" y="211" text-anchor="middle">beforeAll hooks</text><text class="t" x="150.0" y="227" text-anchor="middle">only if not already run in this</text><text class="t" x="150.0" y="243" text-anchor="middle">worker</text></g><g class="obj node tone-attention" data-oid="F2.B3" tabindex="0" role="button" aria-label="F2.B3 beforeEach hooks and test fixtures"><rect class="shape" x="40" y="340" width="220" height="80" rx="4"/><text class="bdg" x="47" y="353">F2.B3</text><text class="t b" x="150.0" y="371" text-anchor="middle">beforeEach hooks and test</text><text class="t b" x="150.0" y="387" text-anchor="middle">fixtures</text><text class="t" x="150.0" y="403" text-anchor="middle">page, context, your own fixtures</text></g><g class="obj node tone-attention" data-oid="F2.B4" tabindex="0" role="button" aria-label="F2.B4 Your test function"><rect class="shape" x="40" y="500" width="220" height="60" rx="4"/><text class="bdg" x="47" y="513">F2.B4</text><text class="t b" x="150.0" y="531" text-anchor="middle">Your test function</text></g><g class="obj node tone-good" data-oid="F2.B5" tabindex="0" role="button" aria-label="F2.B5 afterEach hooks, test fixture teardown"><rect class="shape" x="40" y="640" width="220" height="80" rx="4"/><text class="bdg" x="47" y="653">F2.B5</text><text class="t b" x="150.0" y="671" text-anchor="middle">afterEach hooks, test fixture</text><text class="t b" x="150.0" y="687" text-anchor="middle">teardown</text></g><g class="obj node tone-good" data-oid="F2.B6" tabindex="0" role="button" aria-label="F2.B6 afterAll if leaving the suite"><rect class="shape" x="40" y="800" width="220" height="60" rx="4"/><text class="bdg" x="47" y="813">F2.B6</text><text class="t b" x="150.0" y="831" text-anchor="middle">afterAll if leaving the suite</text></g><g class="obj node tone-plain" data-oid="F2.B7" tabindex="0" role="button" aria-label="F2.B7 Did the test fail?"><polygon class="shape" points="150.0,940 250,980.0 150.0,1020 50,980.0"/><text class="bdg" x="50" y="950">F2.B7</text><text class="t b" x="150.0" y="984.5" text-anchor="middle">Did the test fail?</text></g><g class="obj node tone-danger" data-oid="F2.B8" tabindex="0" role="button" aria-label="F2.B8 Worker cleanup and exit"><rect class="shape" x="380" y="940" width="220" height="80" rx="4"/><text class="bdg" x="387" y="953">F2.B8</text><text class="t b" x="490.0" y="971" text-anchor="middle">Worker cleanup and exit</text><text class="t" x="490.0" y="987" text-anchor="middle">remaining afterAll, worker fixtures</text><text class="t" x="490.0" y="1003" text-anchor="middle">torn down</text></g><g class="obj line tone-plain" data-oid="F2.L1" tabindex="0" role="button" aria-label="F2.L1  from Next test in the group to beforeAll hooks"><polyline class="hit" points="150,100 150,180" fill="none"/><polyline class="ln" points="150,100 150,180" fill="none" marker-end="url(#F2-a-plain)"/><rect class="labbg" x="156.0" y="132.0" width="37" height="16" rx="2"/><text class="bdg" x="160.0" y="142.0">F2.L1</text></g><g class="obj line tone-plain" data-oid="F2.L2" tabindex="0" role="button" aria-label="F2.L2  from beforeAll hooks to beforeEach hooks and test fixtures"><polyline class="hit" points="150,260 150,340" fill="none"/><polyline class="ln" points="150,260 150,340" fill="none" marker-end="url(#F2-a-plain)"/><rect class="labbg" x="156.0" y="292.0" width="37" height="16" rx="2"/><text class="bdg" x="160.0" y="302.0">F2.L2</text></g><g class="obj line tone-plain" data-oid="F2.L3" tabindex="0" role="button" aria-label="F2.L3  from beforeEach hooks and test fixtures to Your test function"><polyline class="hit" points="150,420 150,500" fill="none"/><polyline class="ln" points="150,420 150,500" fill="none" marker-end="url(#F2-a-plain)"/><rect class="labbg" x="156.0" y="452.0" width="37" height="16" rx="2"/><text class="bdg" x="160.0" y="462.0">F2.L3</text></g><g class="obj line tone-plain" data-oid="F2.L4" tabindex="0" role="button" aria-label="F2.L4  from Your test function to afterEach hooks, test fixture teardown"><polyline class="hit" points="150,560 150,640" fill="none"/><polyline class="ln" points="150,560 150,640" fill="none" marker-end="url(#F2-a-plain)"/><rect class="labbg" x="156.0" y="592.0" width="37" height="16" rx="2"/><text class="bdg" x="160.0" y="602.0">F2.L4</text></g><g class="obj line tone-plain" data-oid="F2.L5" tabindex="0" role="button" aria-label="F2.L5  from afterEach hooks, test fixture teardown to afterAll if leaving the suite"><polyline class="hit" points="150,720 150,800" fill="none"/><polyline class="ln" points="150,720 150,800" fill="none" marker-end="url(#F2-a-plain)"/><rect class="labbg" x="156.0" y="752.0" width="37" height="16" rx="2"/><text class="bdg" x="160.0" y="762.0">F2.L5</text></g><g class="obj line tone-plain" data-oid="F2.L6" tabindex="0" role="button" aria-label="F2.L6  from afterAll if leaving the suite to Did the test fail?"><polyline class="hit" points="150,860 150,940" fill="none"/><polyline class="ln" points="150,860 150,940" fill="none" marker-end="url(#F2-a-plain)"/><rect class="labbg" x="156.0" y="892.0" width="37" height="16" rx="2"/><text class="bdg" x="160.0" y="902.0">F2.L6</text></g><g class="obj line tone-plain" data-oid="F2.L7" tabindex="0" role="button" aria-label="F2.L7 no from Did the test fail? to Next test in the group"><polyline class="hit" points="50,980 20,980 20,70 40,70" fill="none"/><polyline class="ln dash" points="50,980 20,980 20,70 40,70" fill="none" marker-end="url(#F2-a-plain)"/><rect class="labbg" x="10.5" y="984.0" width="37" height="31" rx="2"/><text class="bdg" x="14.5" y="994.0">F2.L7</text><text class="l" x="14.5" y="1008.0">no</text></g><g class="obj line tone-danger" data-oid="F2.L8" tabindex="0" role="button" aria-label="F2.L8 yes from Did the test fail? to Worker cleanup and exit"><polyline class="hit" points="250,980 380,980" fill="none"/><polyline class="ln" points="250,980 380,980" fill="none" marker-end="url(#F2-a-danger)"/><rect class="labbg" x="270.5" y="945.0" width="37" height="31" rx="2"/><text class="bdg" x="274.5" y="955.0">F2.L8</text><text class="l" x="274.5" y="969.0">yes</text></g></svg></div><div class="legend"><span class="lg"><i class="sw tone-attention"></i>Spends the test timeout</span><span class="lg"><i class="sw tone-good"></i>Has its own timeout</span><span class="lg"><i class="sw tone-danger"></i>Worker shuts down</span></div><figcaption>Amber steps spend the test's own timeout. Green steps get a separate one. After a failure the whole worker shuts down, which is why the next test's beforeAll runs again.</figcaption><details class="index"><summary>All objects in F2 (17)</summary><div class="table"><table><thead><tr><th>ID</th><th>Type</th><th>Name</th></tr></thead><tbody><tr><td><button class="chip" data-copy="F2">F2</button></td><td>figure</td><td>What runs around one test</td></tr><tr><td><button class="chip" data-copy="F2.B1">F2.B1</button></td><td>box</td><td>Next test in the group</td></tr><tr><td><button class="chip" data-copy="F2.B2">F2.B2</button></td><td>box</td><td>beforeAll hooks</td></tr><tr><td><button class="chip" data-copy="F2.B3">F2.B3</button></td><td>box</td><td>beforeEach hooks and test fixtures</td></tr><tr><td><button class="chip" data-copy="F2.B4">F2.B4</button></td><td>box</td><td>Your test function</td></tr><tr><td><button class="chip" data-copy="F2.B5">F2.B5</button></td><td>box</td><td>afterEach hooks, test fixture teardown</td></tr><tr><td><button class="chip" data-copy="F2.B6">F2.B6</button></td><td>box</td><td>afterAll if leaving the suite</td></tr><tr><td><button class="chip" data-copy="F2.B7">F2.B7</button></td><td>box</td><td>Did the test fail?</td></tr><tr><td><button class="chip" data-copy="F2.B8">F2.B8</button></td><td>box</td><td>Worker cleanup and exit</td></tr><tr><td><button class="chip" data-copy="F2.L1">F2.L1</button></td><td>line</td><td>Next test in the group to beforeAll hooks</td></tr><tr><td><button class="chip" data-copy="F2.L2">F2.L2</button></td><td>line</td><td>beforeAll hooks to beforeEach hooks and test fixtures</td></tr><tr><td><button class="chip" data-copy="F2.L3">F2.L3</button></td><td>line</td><td>beforeEach hooks and test fixtures to Your test function</td></tr><tr><td><button class="chip" data-copy="F2.L4">F2.L4</button></td><td>line</td><td>Your test function to afterEach hooks, test fixture teardown</td></tr><tr><td><button class="chip" data-copy="F2.L5">F2.L5</button></td><td>line</td><td>afterEach hooks, test fixture teardown to afterAll if leaving the suite</td></tr><tr><td><button class="chip" data-copy="F2.L6">F2.L6</button></td><td>line</td><td>afterAll if leaving the suite to Did the test fail?</td></tr><tr><td><button class="chip" data-copy="F2.L7">F2.L7</button></td><td>line</td><td>no</td></tr><tr><td><button class="chip" data-copy="F2.L8">F2.L8</button></td><td>line</td><td>yes</td></tr></tbody></table></div></details></figure><figure id="F3" data-oid="F3"><div class="fighead"><button class="chip" data-copy="F3">F3</button><span class="figtitle">Worked example: one flaky test, one worker</span><button class="btn small" data-copy-scope="F3" type="button">Copy all in F3</button></div><div class="scroll"><svg viewBox="20 28 700 593" style="min-width:700px;max-width:700px" role="group" aria-label="The runner gives worker 0 a file with tests one, two and three. Two fails, worker 0 shuts down, worker 1 starts and runs the retry of two and then three."><defs><marker id="F3-a-plain" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="mk-plain" d="M0 0L10 5L0 10z"/></marker><marker id="F3-a-hub" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="mk-hub" d="M0 0L10 5L0 10z"/></marker><marker id="F3-a-attention" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="mk-attention" d="M0 0L10 5L0 10z"/></marker><marker id="F3-a-hold" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="mk-hold" d="M0 0L10 5L0 10z"/></marker><marker id="F3-a-good" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="mk-good" d="M0 0L10 5L0 10z"/></marker><marker id="F3-a-danger" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="mk-danger" d="M0 0L10 5L0 10z"/></marker><marker id="F3-a-muted" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="mk-muted" d="M0 0L10 5L0 10z"/></marker><marker id="F3-tri" viewBox="0 0 14 14" refX="13" refY="7" markerWidth="11" markerHeight="11" orient="auto-start-reverse"><path class="mk-hollow" d="M1 1L13 7L1 13z"/></marker><marker id="F3-dia-f" viewBox="0 0 16 10" refX="1" refY="5" markerWidth="13" markerHeight="9" orient="auto-start-reverse"><path class="mk-plain" d="M1 5L8 1L15 5L8 9z"/></marker><marker id="F3-dia-h" viewBox="0 0 16 10" refX="1" refY="5" markerWidth="13" markerHeight="9" orient="auto-start-reverse"><path class="mk-hollow" d="M1 5L8 1L15 5L8 9z"/></marker><marker id="F3-open" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path class="mk-open" d="M1 1L9 5L1 9"/></marker></defs><g class="obj node tone-hub" data-oid="F3.B1" tabindex="0" role="button" aria-label="F3.B1 Runner (dispatcher)"><line class="life" x1="130" x2="130" y1="100" y2="609"/><line class="hit" x1="130" x2="130" y1="100" y2="609"/><rect class="shape" x="40" y="40" width="180" height="60" rx="4"/><text class="bdg" x="47" y="53">F3.B1</text><text class="t b" x="130" y="71" text-anchor="middle">Runner (dispatcher)</text></g><g class="obj node tone-plain" data-oid="F3.B2" tabindex="0" role="button" aria-label="F3.B2 Worker 0 (pid 392)"><line class="life" x1="370" x2="370" y1="100" y2="609"/><line class="hit" x1="370" x2="370" y1="100" y2="609"/><rect class="shape" x="280" y="40" width="180" height="60" rx="4"/><text class="bdg" x="287" y="53">F3.B2</text><text class="t b" x="370" y="71" text-anchor="middle">Worker 0 (pid 392)</text></g><g class="obj node tone-plain" data-oid="F3.B3" tabindex="0" role="button" aria-label="F3.B3 Worker 1 (pid 403)"><line class="life" x1="610" x2="610" y1="100" y2="609"/><line class="hit" x1="610" x2="610" y1="100" y2="609"/><rect class="shape" x="520" y="40" width="180" height="60" rx="4"/><text class="bdg" x="527" y="53">F3.B3</text><text class="t b" x="610" y="71" text-anchor="middle">Worker 1 (pid 403)</text></g><g class="obj line tone-plain" data-oid="F3.L1" tabindex="0" role="button" aria-label="F3.L1 run group: one, two, three"><polyline class="hit" points="130,161 368,161" fill="none"/><polyline class="ln" points="130,161 368,161" fill="none" marker-end="url(#F3-a-plain)"/><rect class="labbg" x="174.5625" y="126" width="150.87499999999997" height="31" rx="2"/><text class="bdg" text-anchor="middle" x="250.0" y="136">F3.L1</text><text class="l" text-anchor="middle" x="250.0" y="150">run group: one, two, three</text></g><g class="obj node note tone-plain" data-oid="F3.N1" tabindex="0" role="button" aria-label="F3.N1 one ✓   two ✘ (attempt 1)"><rect class="shape" x="285" y="184" width="170" height="41" rx="3"/><text class="bdg" x="292" y="197">F3.N1</text><text class="t" x="370" y="213" text-anchor="middle">one ✓ two ✘ (attempt 1)</text></g><g class="obj line tone-plain" data-oid="F3.L2" tabindex="0" role="button" aria-label="F3.L2 done: failed, three left"><polyline class="hit" points="370,278 132,278" fill="none"/><polyline class="ln dash" points="370,278 132,278" fill="none" marker-end="url(#F3-a-plain)"/><rect class="labbg" x="184.375" y="243" width="131.25" height="31" rx="2"/><text class="bdg" text-anchor="middle" x="250.0" y="253">F3.L2</text><text class="l" text-anchor="middle" x="250.0" y="267">done: failed, three left</text></g><g class="obj line tone-attention" data-oid="F3.L3" tabindex="0" role="button" aria-label="F3.L3 stop"><polyline class="hit" points="130,336 368,336" fill="none"/><polyline class="ln" points="130,336 368,336" fill="none" marker-end="url(#F3-a-attention)"/><rect class="labbg" x="231.5125" y="301" width="36.974999999999994" height="31" rx="2"/><text class="bdg" text-anchor="middle" x="250.0" y="311">F3.L3</text><text class="l" text-anchor="middle" x="250.0" y="325">stop</text></g><g class="obj line tone-attention" data-oid="F3.L4" tabindex="0" role="button" aria-label="F3.L4 run group: three + retry of two"><polyline class="hit" points="130,394 608,394" fill="none"/><polyline class="ln" points="130,394 608,394" fill="none" marker-end="url(#F3-a-attention)"/><rect class="labbg" x="283.5" y="359" width="173.0" height="31" rx="2"/><text class="bdg" text-anchor="middle" x="370.0" y="369">F3.L4</text><text class="l" text-anchor="middle" x="370.0" y="383">run group: three + retry of two</text></g><g class="obj node note tone-plain" data-oid="F3.N2" tabindex="0" role="button" aria-label="F3.N2 beforeAll and worker fixtures run again"><rect class="shape" x="525" y="417" width="170" height="57" rx="3"/><text class="bdg" x="532" y="430">F3.N2</text><text class="t" x="610" y="446" text-anchor="middle">beforeAll and worker</text><text class="t" x="610" y="462" text-anchor="middle">fixtures run again</text></g><g class="obj node note tone-plain" data-oid="F3.N3" tabindex="0" role="button" aria-label="F3.N3 two ✓ (retry #1)   three ✓"><rect class="shape" x="525" y="492" width="170" height="41" rx="3"/><text class="bdg" x="532" y="505">F3.N3</text><text class="t" x="610" y="521" text-anchor="middle">two ✓ (retry #1) three ✓</text></g><g class="obj line tone-plain" data-oid="F3.L5" tabindex="0" role="button" aria-label="F3.L5 done: all passed"><polyline class="hit" points="610,586 132,586" fill="none"/><polyline class="ln dash" points="610,586 132,586" fill="none" marker-end="url(#F3-a-plain)"/><rect class="labbg" x="319.875" y="551" width="100.25000000000001" height="31" rx="2"/><text class="bdg" text-anchor="middle" x="370.0" y="561">F3.L5</text><text class="l" text-anchor="middle" x="370.0" y="575">done: all passed</text></g></svg></div><figcaption>Exactly what a probe printed with workers: 1 and retries: 1. The retry and the remaining test share the new worker.</figcaption><details class="index"><summary>All objects in F3 (12)</summary><div class="table"><table><thead><tr><th>ID</th><th>Type</th><th>Name</th></tr></thead><tbody><tr><td><button class="chip" data-copy="F3">F3</button></td><td>figure</td><td>Worked example: one flaky test, one worker</td></tr><tr><td><button class="chip" data-copy="F3.B1">F3.B1</button></td><td>box</td><td>Runner (dispatcher)</td></tr><tr><td><button class="chip" data-copy="F3.B2">F3.B2</button></td><td>box</td><td>Worker 0 (pid 392)</td></tr><tr><td><button class="chip" data-copy="F3.B3">F3.B3</button></td><td>box</td><td>Worker 1 (pid 403)</td></tr><tr><td><button class="chip" data-copy="F3.L1">F3.L1</button></td><td>line</td><td>run group: one, two, three</td></tr><tr><td><button class="chip" data-copy="F3.N1">F3.N1</button></td><td>note</td><td>one ✓   two ✘ (attempt 1)</td></tr><tr><td><button class="chip" data-copy="F3.L2">F3.L2</button></td><td>line</td><td>done: failed, three left</td></tr><tr><td><button class="chip" data-copy="F3.L3">F3.L3</button></td><td>line</td><td>stop</td></tr><tr><td><button class="chip" data-copy="F3.L4">F3.L4</button></td><td>line</td><td>run group: three + retry of two</td></tr><tr><td><button class="chip" data-copy="F3.N2">F3.N2</button></td><td>note</td><td>beforeAll and worker fixtures run again</td></tr><tr><td><button class="chip" data-copy="F3.N3">F3.N3</button></td><td>note</td><td>two ✓ (retry #1)   three ✓</td></tr><tr><td><button class="chip" data-copy="F3.L5">F3.L5</button></td><td>line</td><td>done: all passed</td></tr></tbody></table></div></details></figure></section><section id="S3"><h2><button class="chip" data-copy="S3">S3</button> Defaults that surprise testers</h2><div class="tablewrap" id="T1"><div class="fighead"><button class="chip" data-copy="T1">T1</button><span class="figtitle">Defaults worth knowing</span><button class="btn small" data-copy-scope="T1" type="button">Copy all in T1</button></div><div class="table"><table><thead><tr><th class="idh">ID</th><th>Setting</th><th>Default</th><th>What it means for you</th></tr></thead><tbody><tr data-oid="T1.R1" tabindex="0"><td class="idcell"><button class="chip" data-copy="T1.R1">T1.R1</button></td><td>Test timeout</td><td>30 s</td><td>Covers beforeEach, test fixtures and the test body together. A slow login in beforeEach eats your test's time.</td></tr><tr data-oid="T1.R2" tabindex="0"><td class="idcell"><button class="chip" data-copy="T1.R2">T1.R2</button></td><td>expect timeout</td><td>5 s</td><td>Per waiting assertion, still inside the 30 s test timeout.</td></tr><tr data-oid="T1.R3" tabindex="0"><td class="idcell"><button class="chip" data-copy="T1.R3">T1.R3</button></td><td>Retries</td><td>0</td><td>A flaky test fails the run. Set retries in CI, and watch the flaky count.</td></tr><tr data-oid="T1.R4" tabindex="0"><td class="idcell"><button class="chip" data-copy="T1.R4">T1.R4</button></td><td>Workers</td><td>50% of CPU cores</td><td>A 2-core CI runner gets 1 worker. Set workers explicitly if your CI machine differs from your laptop.</td></tr><tr data-oid="T1.R5" tabindex="0"><td class="idcell"><button class="chip" data-copy="T1.R5">T1.R5</button></td><td>fullyParallel</td><td>false</td><td>Tests in one file run one after another in one worker. Only files run in parallel.</td></tr><tr data-oid="T1.R6" tabindex="0"><td class="idcell"><button class="chip" data-copy="T1.R6">T1.R6</button></td><td>Retry strategy</td><td>immediate</td><td>The retry runs straight away in a fresh worker, together with the rest of the file. 'isolated' runs retries one at a time at the end instead.</td></tr><tr data-oid="T1.R7" tabindex="0"><td class="idcell"><button class="chip" data-copy="T1.R7">T1.R7</button></td><td>After a failure</td><td>New worker</td><td>beforeAll and worker-scoped fixtures run again for the rest of the file.</td></tr><tr data-oid="T1.R8" tabindex="0"><td class="idcell"><button class="chip" data-copy="T1.R8">T1.R8</button></td><td>globalTimeout</td><td>0 (none)</td><td>A hung run is only stopped by your CI's own job timeout.</td></tr><tr data-oid="T1.R9" tabindex="0"><td class="idcell"><button class="chip" data-copy="T1.R9">T1.R9</button></td><td>maxFailures</td><td>0 (no limit)</td><td>Every test runs even when the app is clearly down. Set it to fail fast in CI.</td></tr></tbody></table></div></div></section></main><div class="tray" id="tray" hidden><span id="traytext"></span><button class="btn" id="traycopy" type="button">Copy</button><button class="btn" id="trayclear" type="button">Clear</button></div><div class="tip" id="tip" role="tooltip" hidden></div><div class="toast" id="toast" role="status" aria-live="polite"></div><script type="application/json" id="objdata">{"title": "How Playwright Test runs your tests", "objects": {"S1": {"k": "section", "t": "The whole run"}, "F1": {"k": "figure", "t": "From npx playwright test to the report", "d": "Top to bottom: load config, global setup, load and filter test files, plan phases by project dependency, split into test groups, dispatch groups to workers, report."}, "F1.B1": {"k": "box", "t": "npx playwright test", "d": "CLI flags such as --workers, --retries or --timeout override the config file, which overrides the defaults.", "s": "packages/playwright/src/common/config.ts#workers: resolveWorkers(takeFirst(configCLIOverrides.debug ? 1 : undefined, configCLIOverrides.workers, userConfig.workers, '50%')),", "g": "F1"}, "F1.B2": {"k": "box", "t": "Global setup", "d": "The test-results folder is emptied first. Plugins such as webServer start here, then your globalSetup files. Your globalTeardown files are queued here too and run at the very end.", "s": "packages/playwright/src/runner/tasks.ts#...config.globalSetups.map(file => createGlobalSetupTask(file, config)),", "g": "F1"}, "F1.B3": {"k": "box", "t": "Load and filter test files", "d": "Every test file is imported once in the runner just to collect test titles. Code at the top level of a spec file therefore runs in the runner too, and again in every worker that loads the file.", "s": "packages/playwright/src/runner/testRunner.ts#createLoadTask('in-process', { filterOnly: true, failOnLoadErrors: true }),", "g": "F1"}, "F1.B4": {"k": "box", "t": "Plan phases by project dependencies", "d": "A phase holds every project whose dependencies finished in earlier phases. Phases run one after another; projects inside a phase share the workers.", "s": "packages/playwright/src/runner/tasks.ts#Find all projects that have all their dependencies processed by previous phases.", "g": "F1"}, "F1.B5": {"k": "box", "t": "Dependents of a failed project skipped", "d": "If any test in a setup project fails, projects that depend on it are not run at all in later phases.", "s": "packages/playwright/src/runner/tasks.ts#const hasFailedDeps = project.deps.some(p => !successfulProjects.has(p));", "g": "F1"}, "F1.B6": {"k": "box", "t": "Split into test groups", "d": "Without fullyParallel or test.describe.configure({ mode: 'parallel' }), all tests of one file form one group and run in order in one worker. Files run in parallel; tests inside a file do not.", "s": "packages/playwright/src/runner/testGroups.ts#withRequireFile.general.tests.push(test);", "g": "F1"}, "F1.B7": {"k": "box", "t": "Dispatch groups to workers", "d": "A worker can be reused for the next group only if its worker hash matches: same project and same worker-scoped fixture options. Otherwise the worker is stopped and a new one starts.", "s": "packages/playwright/src/runner/dispatcher.ts#// 2. Find a worker with the same hash, or just some free worker.", "g": "F1"}, "F1.B8": {"k": "box", "t": "Worker runs the group", "d": "A separate Node.js process. It loads the spec file again, then runs each test of the group in order with its hooks and fixtures.", "s": "packages/playwright/src/worker/workerMain.ts#async runTestGroup(runPayload: ipc.RunPayload) {", "g": "F1"}, "F1.B9": {"k": "box", "t": "Failure: worker stopped, rest re-queued", "d": "After any failed test the worker process is thrown away. The group's remaining tests and the retry go back to the front of the queue and start in a fresh worker.", "s": "packages/playwright/src/runner/dispatcher.ts#void worker.stop(true /* didFail */);", "g": "F1"}, "F1.B10": {"k": "box", "t": "Report", "d": "Reporters receive every result as it happens, then onEnd. A test that failed and then passed on retry is reported as flaky, which still counts as passing unless failOnFlakyTests is set.", "s": "packages/playwright/src/common/config.ts#failOnFlakyTests: takeFirst(configCLIOverrides.failOnFlakyTests, userConfig.failOnFlakyTests, false),", "g": "F1"}, "F1.L1": {"k": "line", "t": "npx playwright test to Global setup", "d": "The resolved config, with CLI overrides applied.", "g": "F1", "f": "F1.B1", "o": "F1.B2"}, "F1.L2": {"k": "line", "t": "Global setup to Load and filter test files", "d": "Environment set up by globalSetup is visible to workers started later.", "g": "F1", "f": "F1.B2", "o": "F1.B3"}, "F1.L3": {"k": "line", "t": "Load and filter test files to Plan phases by project dependencies", "d": "The filtered tree of projects, files, suites and tests.", "g": "F1", "f": "F1.B3", "o": "F1.B4"}, "F1.L4": {"k": "line", "t": "dependency failed", "d": "Checked when each later phase starts.", "g": "F1", "f": "F1.B4", "o": "F1.B5"}, "F1.L5": {"k": "line", "t": "Plan phases by project dependencies to Split into test groups", "d": "Each project in the phase is split separately.", "g": "F1", "f": "F1.B4", "o": "F1.B6"}, "F1.L6": {"k": "line", "t": "Split into test groups to Dispatch groups to workers", "d": "One queue of groups per phase; with --shuffle the groups are shuffled first.", "g": "F1", "f": "F1.B6", "o": "F1.B7"}, "F1.L7": {"k": "line", "t": "group", "d": "At most `workers` groups run at once; the default is half the CPU cores.", "g": "F1", "f": "F1.B7", "o": "F1.B8"}, "F1.L8": {"k": "line", "t": "all passed", "d": "The worker stays alive and can take the next group with the same hash.", "g": "F1", "f": "F1.B8", "o": "F1.B7"}, "F1.L9": {"k": "line", "t": "a test failed", "d": "The worker reports which tests are left over.", "g": "F1", "f": "F1.B8", "o": "F1.B9"}, "F1.L10": {"k": "line", "t": "new worker", "d": "Remaining tests go to the front of the queue.", "g": "F1", "f": "F1.B9", "o": "F1.B7"}, "F1.L11": {"k": "line", "t": "queue empty", "d": "When every phase is done, global teardown runs and the reporters finish.", "g": "F1", "f": "F1.B7", "o": "F1.B10"}, "S2": {"k": "section", "t": "One test inside a worker"}, "F2": {"k": "figure", "t": "What runs around one test", "d": "Top to bottom: beforeAll with its own timeout, then beforeEach and fixtures sharing the test timeout, the test function, after-each hooks with an extra timeout, afterAll when leaving the suite, and on failure the worker shuts down."}, "F2.B1": {"k": "box", "t": "Next test in the group", "d": "Tests run in the order of the group, which is file order for a normal file.", "g": "F2"}, "F2.B2": {"k": "box", "t": "beforeAll hooks", "d": "Each beforeAll hook gets a fresh time slot of the project timeout, separate from the test's. It runs once per worker, so after a worker restart it runs again. Probed: a beforeAll ran in worker 0 and again in worker 1 after a failure.", "s": "packages/playwright/src/worker/workerMain.ts#// Separate time slot for each beforeAll/afterAll hook.", "g": "F2"}, "F2.B3": {"k": "box", "t": "beforeEach hooks and test fixtures", "d": "These share the test's timeout with the test body. Probed: a 1.5 s beforeEach plus a 1 s test failed a 2 s timeout, while the same pair with beforeAll passed.", "s": "packages/playwright/src/worker/workerMain.ts#// Setup fixtures required by the test.", "g": "F2"}, "F2.B4": {"k": "box", "t": "Your test function", "d": "Each expect() that waits (toBeVisible, toHaveText…) has its own 5 s limit, but all of them still sit inside the test timeout.", "s": "packages/playwright/src/matchers/expect.ts#const defaultExpectTimeout = 5000;", "g": "F2"}, "F2.B5": {"k": "box", "t": "afterEach hooks, test fixture teardown", "d": "Run even when the test failed or timed out, with an extra allowance equal to the larger of the project and test timeouts. This is where screenshots, videos and traces are saved.", "s": "packages/playwright/src/worker/workerMain.ts#// After hooks get an additional timeout.", "g": "F2"}, "F2.B6": {"k": "box", "t": "afterAll if leaving the suite", "d": "Runs when the next test belongs to another describe block, or right away if this test failed.", "s": "packages/playwright/src/worker/workerMain.ts#if (!nextSuites.has(suite) || testInfo._isFailure()) {", "g": "F2"}, "F2.B7": {"k": "box", "t": "Did the test fail?", "d": "Includes timeouts and unexpected passes of tests marked test.fail().", "g": "F2"}, "F2.B8": {"k": "box", "t": "Worker cleanup and exit", "d": "The worker refuses to run further tests: state from the failed test could leak into them. Worker-scoped fixtures, such as a shared browser or login, are torn down and must be built again in the next worker.", "s": "packages/playwright/src/worker/workerMain.ts#// Run all remaining \"afterAll\" hooks and teardown all fixtures when worker is shutting down.", "g": "F2"}, "F2.L1": {"k": "line", "t": "Next test in the group to beforeAll hooks", "d": "Suites the test belongs to, from the outermost describe inwards.", "g": "F2", "f": "F2.B1", "o": "F2.B2"}, "F2.L2": {"k": "line", "t": "beforeAll hooks to beforeEach hooks and test fixtures", "d": "The test's own timer starts here.", "g": "F2", "f": "F2.B2", "o": "F2.B3"}, "F2.L3": {"k": "line", "t": "beforeEach hooks and test fixtures to Your test function", "d": "Fixture values are passed in as the test's arguments.", "g": "F2", "f": "F2.B3", "o": "F2.B4"}, "F2.L4": {"k": "line", "t": "Your test function to afterEach hooks, test fixture teardown", "d": "Also taken when the body throws or times out.", "g": "F2", "f": "F2.B4", "o": "F2.B5"}, "F2.L5": {"k": "line", "t": "afterEach hooks, test fixture teardown to afterAll if leaving the suite", "d": "Hooks run in reverse order of their suites.", "g": "F2", "f": "F2.B5", "o": "F2.B6"}, "F2.L6": {"k": "line", "t": "afterAll if leaving the suite to Did the test fail?", "d": "The result is final at this point.", "g": "F2", "f": "F2.B6", "o": "F2.B7"}, "F2.L7": {"k": "line", "t": "no", "d": "The same worker continues with the next test; worker fixtures stay alive.", "g": "F2", "f": "F2.B7", "o": "F2.B1"}, "F2.L8": {"k": "line", "t": "yes", "d": "The dispatcher re-queues what is left for a fresh worker.", "g": "F2", "f": "F2.B7", "o": "F2.B8"}, "F3": {"k": "figure", "t": "Worked example: one flaky test, one worker", "d": "The runner gives worker 0 a file with tests one, two and three. Two fails, worker 0 shuts down, worker 1 starts and runs the retry of two and then three."}, "F3.B1": {"k": "box", "t": "Runner (dispatcher)", "d": "The main process; it never runs test code.", "g": "F3"}, "F3.B2": {"k": "box", "t": "Worker 0 (pid 392)", "d": "The first worker process.", "g": "F3"}, "F3.B3": {"k": "box", "t": "Worker 1 (pid 403)", "d": "A brand-new process started after the failure.", "g": "F3"}, "F3.L1": {"k": "line", "t": "run group: one, two, three", "d": "All three tests are in one file, so they form one group.", "g": "F3", "f": "F3.B1", "o": "F3.B2"}, "F3.N1": {"k": "note", "t": "one ✓   two ✘ (attempt 1)", "d": "two throws on its first attempt only.", "g": "F3"}, "F3.L2": {"k": "line", "t": "done: failed, three left", "d": "The worker reports the failure and the test it did not run.", "g": "F3", "f": "F3.B2", "o": "F3.B1"}, "F3.L3": {"k": "line", "t": "stop", "d": "A worker that saw a failure is never reused.", "g": "F3", "f": "F3.B1", "o": "F3.B2"}, "F3.L4": {"k": "line", "t": "run group: three + retry of two", "d": "The leftover test and the retry go to the front of the queue as one job. The worker runs them in file order.", "g": "F3", "f": "F3.B1", "o": "F3.B3"}, "F3.N2": {"k": "note", "t": "beforeAll and worker fixtures run again", "d": "Nothing from worker 0 survives, so any login or seeding repeats.", "g": "F3"}, "F3.N3": {"k": "note", "t": "two ✓ (retry #1)   three ✓", "d": "two is reported as flaky.", "g": "F3"}, "F3.L5": {"k": "line", "t": "done: all passed", "d": "Worker 1 can now take another group with the same hash.", "g": "F3", "f": "F3.B3", "o": "F3.B1"}, "S3": {"k": "section", "t": "Defaults that surprise testers"}, "T1": {"k": "table", "t": "Defaults worth knowing"}, "T1.R1": {"k": "row", "t": "Test timeout | 30 s | Covers beforeEach, test fixtures and the test body together. A slow login in beforeEach eats your test's time.", "s": "packages/playwright/src/common/config.ts#export const defaultTimeout = 30000;", "g": "T1"}, "T1.R2": {"k": "row", "t": "expect timeout | 5 s | Per waiting assertion, still inside the 30 s test timeout.", "s": "packages/playwright/src/matchers/expect.ts#const defaultExpectTimeout = 5000;", "g": "T1"}, "T1.R3": {"k": "row", "t": "Retries | 0 | A flaky test fails the run. Set retries in CI, and watch the flaky count.", "s": "packages/playwright/src/common/config.ts#retries: takeFirst(configCLIOverrides.retries, projectConfig.retries, config.retries, 0),", "g": "T1"}, "T1.R4": {"k": "row", "t": "Workers | 50% of CPU cores | A 2-core CI runner gets 1 worker. Set workers explicitly if your CI machine differs from your laptop.", "s": "packages/playwright/src/common/config.ts#return Math.max(1, Math.floor(cpus * (percent / 100)));", "g": "T1"}, "T1.R5": {"k": "row", "t": "fullyParallel | false | Tests in one file run one after another in one worker. Only files run in parallel.", "s": "packages/playwright/src/common/config.ts#fullyParallel: takeFirst(configCLIOverrides.fullyParallel, userConfig.fullyParallel, false),", "g": "T1"}, "T1.R6": {"k": "row", "t": "Retry strategy | immediate | The retry runs straight away in a fresh worker, together with the rest of the file. 'isolated' runs retries one at a time at the end instead.", "s": "packages/playwright/src/common/config.ts#this.retryStrategy = takeFirst(userConfig.retryStrategy, 'immediate');", "g": "T1"}, "T1.R7": {"k": "row", "t": "After a failure | New worker | beforeAll and worker-scoped fixtures run again for the rest of the file.", "s": "packages/playwright/src/runner/dispatcher.ts#// 4. When worker encounters error, we stop it and create a new one.", "g": "T1"}, "T1.R8": {"k": "row", "t": "globalTimeout | 0 (none) | A hung run is only stopped by your CI's own job timeout.", "s": "packages/playwright/src/common/config.ts#globalTimeout: takeFirst(configCLIOverrides.debug ? 0 : undefined, configCLIOverrides.globalTimeout, userConfig.globalTimeout, 0),", "g": "T1"}, "T1.R9": {"k": "row", "t": "maxFailures | 0 (no limit) | Every test runs even when the app is clearly down. Set it to fail fast in CI.", "s": "packages/playwright/src/common/config.ts#maxFailures: takeFirst(configCLIOverrides.debug ? 1 : undefined, configCLIOverrides.maxFailures, userConfig.maxFailures, 0),", "g": "T1"}}}</script><script>(function () {
+  var DOC = JSON.parse(document.getElementById('objdata').textContent);
+  var OBJ = DOC.objects;
+  var tip = document.getElementById('tip');
+  var toastEl = document.getElementById('toast');
+  var tray = document.getElementById('tray');
+  var trayText = document.getElementById('traytext');
+  var manyBox = document.getElementById('many');
+  var picked = [];
+  var toastTimer, tipTimer;
+
+  function el(oid) { return document.querySelector('[data-oid="' + oid + '"]'); }
+  function store(key, value) { try { localStorage.setItem(key, value); } catch (e) {} }
+  function recall(key) { try { return localStorage.getItem(key); } catch (e) { return null; } }
+
+  /* The text a person pastes to the AI: enough to find the object even without the page open. */
+  function refLine(oid) {
+    var o = OBJ[oid];
+    if (!o) return oid;
+    if (o.k === 'line') {
+      var ends = o.f && o.o ? ' ' + o.f + ' -> ' + o.o : '';
+      return oid + ' [line' + (o.r ? ': ' + o.r : '') + ']' + ends + ' "' + o.t + '"';
+    }
+    return oid + ' [' + o.k + '] "' + o.t + '"';
+  }
+  function refBlock(ids) {
+    return 'In "' + DOC.title + '":\n' + ids.map(refLine).join('\n');
+  }
+
+  function toast(text) {
+    toastEl.textContent = text;
+    toastEl.classList.add('on');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { toastEl.classList.remove('on'); }, 1800);
+  }
+  /* Clipboard API first; it is missing or refused in some sandboxes, so fall back to a hidden textarea. */
+  function copyText(text, done) {
+    function legacy() {
+      var ta = document.createElement('textarea');
+      ta.value = text;
+      ta.setAttribute('readonly', '');
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      var ok = false;
+      try { ok = document.execCommand('copy'); } catch (e) {}
+      ta.remove();
+      toast(ok ? done : 'Could not copy: ' + text.slice(0, 120));
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { toast(done); }, legacy);
+    } else {
+      legacy();
+    }
+  }
+
+  function showTip(oid, x, y, anchor) {
+    var o = OBJ[oid];
+    if (!o) return;
+    tip.textContent = '';
+    function add(cls, text) {
+      var s = document.createElement('span');
+      s.className = cls;
+      s.textContent = text;
+      tip.appendChild(s);
+    }
+    add('tid', oid + ' · ' + o.k + (o.r ? ' (' + o.r + ')' : ''));
+    add('tname', o.t);
+    if (o.f && o.o) add('tsrc', o.f + ' → ' + o.o);
+    if (o.d) tip.appendChild(document.createTextNode(o.d));
+    if (o.s) add('tsrc', o.s);
+    add('thint', 'Click to copy · Shift-click to collect');
+    tip.hidden = false;
+    var r = tip.getBoundingClientRect();
+    if (anchor) {
+      var a = anchor.getBoundingClientRect();
+      x = a.left + a.width / 2;
+      y = a.bottom;
+    }
+    var left = Math.min(Math.max(8, x + 14), window.innerWidth - r.width - 8);
+    var top = y + 16;
+    if (top + r.height > window.innerHeight - 8) top = Math.max(8, y - r.height - 12);
+    tip.style.left = left + 'px';
+    tip.style.top = top + 'px';
+  }
+  function hideTip() { tip.hidden = true; }
+
+  function setRelated(oid, on) {
+    var o = OBJ[oid];
+    if (!o) return;
+    var ids = [];
+    if (o.m) ids = ids.concat(o.m);
+    if (o.k === 'set') {
+      Object.keys(OBJ).forEach(function (k) {
+        if (OBJ[k].m && OBJ[k].m.indexOf(oid) >= 0) ids.push(k);
+      });
+    }
+    if (o.f) ids.push(o.f);
+    if (o.o) ids.push(o.o);
+    if (o.k !== 'line') {
+      Object.keys(OBJ).forEach(function (k) {
+        if (OBJ[k].k === 'line' && (OBJ[k].f === oid || OBJ[k].o === oid)) ids.push(k);
+      });
+    }
+    ids.forEach(function (id) {
+      var e = el(id);
+      if (e) e.classList.toggle('rel', on);
+    });
+  }
+
+  function togglePick(oid) {
+    var i = picked.indexOf(oid);
+    if (i >= 0) picked.splice(i, 1); else picked.push(oid);
+    var e = el(oid);
+    if (e) e.classList.toggle('picked', i < 0);
+    tray.hidden = picked.length === 0;
+    trayText.textContent = picked.length + ' collected: ' + picked.join(', ');
+  }
+  function clearPicks() { picked.slice().forEach(togglePick); }
+
+  function objectOf(target) {
+    if (!target || !target.closest) return null;
+    var e = target.closest('[data-oid]');
+    /* A figure carries an ID, but hovering empty space in it isn't pointing at anything. */
+    return e && e.tagName.toLowerCase() !== 'figure' ? e : null;
+  }
+
+  var current = null;
+  document.addEventListener('mousemove', function (ev) {
+    var e = objectOf(ev.target);
+    var oid = e ? e.getAttribute('data-oid') : null;
+    if (oid !== current) {
+      if (current) setRelated(current, false);
+      if (oid) setRelated(oid, true);
+      current = oid;
+    }
+    if (oid) showTip(oid, ev.clientX, ev.clientY); else hideTip();
+  });
+  document.addEventListener('focusin', function (ev) {
+    var e = objectOf(ev.target);
+    if (e && ev.target === e) showTip(e.getAttribute('data-oid'), 0, 0, e);
+  });
+  document.addEventListener('focusout', hideTip);
+  document.addEventListener('keydown', function (ev) {
+    if (ev.key === 'Escape') { hideTip(); return; }
+    if ((ev.key === 'Enter' || ev.key === ' ') && ev.target.matches && ev.target.matches('[data-oid]')) {
+      ev.preventDefault();
+      activate(ev.target.getAttribute('data-oid'), ev.shiftKey || ev.ctrlKey || ev.metaKey, ev.target);
+    }
+  });
+
+  function activate(oid, collect, anchor) {
+    if (collect || manyBox.checked) {
+      togglePick(oid);
+      return;
+    }
+    copyText(refLine(oid), 'Copied ' + oid);
+    /* Touch screens have no hover, so a tap also shows the tooltip for a moment. */
+    showTip(oid, 0, 0, anchor);
+    clearTimeout(tipTimer);
+    tipTimer = setTimeout(hideTip, 4000);
+  }
+
+  document.addEventListener('click', function (ev) {
+    var t = ev.target;
+    var chip = t.closest && t.closest('[data-copy]');
+    if (chip) {
+      var id = chip.getAttribute('data-copy');
+      if (ev.shiftKey || ev.ctrlKey || ev.metaKey || manyBox.checked) togglePick(id);
+      else copyText(refLine(id), 'Copied ' + id);
+      ev.stopPropagation();
+      return;
+    }
+    var scope = t.closest && t.closest('[data-copy-scope]');
+    if (scope) {
+      var pre = scope.getAttribute('data-copy-scope');
+      var ids = Object.keys(OBJ).filter(function (k) { return k === pre || k.indexOf(pre + '.') === 0; });
+      copyText(refBlock(ids), 'Copied ' + ids.length + ' objects from ' + pre);
+      return;
+    }
+    var e = objectOf(t);
+    if (!e) return;
+    var collect = ev.shiftKey || ev.ctrlKey || ev.metaKey;
+    /* Selecting table text to copy it shouldn't also copy the row. A shift-click selects text too, but means collect. */
+    if (!collect && String(window.getSelection())) return;
+    activate(e.getAttribute('data-oid'), collect, e);
+  });
+  document.addEventListener('mousedown', function (ev) {
+    if (ev.shiftKey && objectOf(ev.target)) ev.preventDefault();
+  });
+
+  document.getElementById('copyall').addEventListener('click', function () {
+    var ids = Object.keys(OBJ);
+    copyText(refBlock(ids), 'Copied all ' + ids.length + ' IDs');
+  });
+  document.getElementById('traycopy').addEventListener('click', function () {
+    copyText(refBlock(picked), 'Copied ' + picked.length + ' objects');
+  });
+  document.getElementById('trayclear').addEventListener('click', clearPicks);
+
+  function goTo(oid) {
+    var e = el(oid) || document.getElementById(oid);
+    if (!e) return false;
+    var details = e.closest && e.closest('details');
+    if (details) details.open = true;
+    e.scrollIntoView({ block: 'center', inline: 'center', behavior: 'smooth' });
+    e.classList.remove('flash');
+    void e.getBoundingClientRect();
+    e.classList.add('flash');
+    setTimeout(function () { e.classList.remove('flash'); }, 2300);
+    return true;
+  }
+  document.getElementById('find').addEventListener('submit', function (ev) {
+    ev.preventDefault();
+    var q = document.getElementById('findbox').value.trim().toLowerCase();
+    if (!q) return;
+    var all = Object.keys(OBJ);
+    var exact = all.filter(function (k) { return k.toLowerCase() === q; });
+    /* "B7" alone is fine when only one figure has a B7. */
+    var hits = exact.length ? exact : all.filter(function (k) {
+      return k.toLowerCase().slice(-q.length - 1) === '.' + q;
+    });
+    if (hits.length === 1) {
+      goTo(hits[0]);
+      history.replaceState(null, '', '#' + hits[0]);
+    } else if (hits.length > 1) {
+      toast('Which one? ' + hits.join(', '));
+    } else {
+      toast('No object called ' + q);
+    }
+  });
+
+  var showIds = document.getElementById('showids');
+  function applyIds() { document.body.classList.toggle('noids', !showIds.checked); }
+  if (recall('flowchart-ids') === 'off') showIds.checked = false;
+  applyIds();
+  showIds.addEventListener('change', function () {
+    applyIds();
+    store('flowchart-ids', showIds.checked ? 'on' : 'off');
+  });
+
+  function fromHash() {
+    var id = decodeURIComponent(location.hash.slice(1));
+    if (id && OBJ[id]) setTimeout(function () { goTo(id); }, 150);
+  }
+  window.addEventListener('hashchange', fromHash);
+  fromHash();
+})();
+</script></body></html>

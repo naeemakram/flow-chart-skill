@@ -28,3 +28,21 @@ jobs:
         run: python skills/flow-chart/scripts/render.py examples/requests/requests.spec.json -o /tmp/requests.html --check-sources /tmp/requests --strict
       - name: Spec already holds every ID
         run: git diff --exit-code examples/requests/requests.spec.json
+
+  render-playwright-example:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Fetch the Playwright test runner at the commit the example describes
+        run: |
+          git init -q /tmp/playwright
+          git -C /tmp/playwright sparse-checkout set packages/playwright/src
+          git -C /tmp/playwright fetch -q --depth 1 --filter=blob:none https://github.com/microsoft/playwright.git 820620c98b359f4bb16e1596fd16d6b1a354b2f3
+          git -C /tmp/playwright checkout -q FETCH_HEAD
+      - name: Render the example and check every source quote
+        run: python skills/flow-chart/scripts/render.py examples/playwright/playwright.spec.json -o /tmp/playwright.html --check-sources /tmp/playwright --strict
+      - name: Spec already holds every ID
+        run: git diff --exit-code examples/playwright/playwright.spec.json

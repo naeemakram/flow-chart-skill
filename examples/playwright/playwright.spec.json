@@ -1,0 +1,630 @@
+{
+ "title": "How Playwright Test runs your tests",
+ "short_title": "Playwright Test Run",
+ "lead": "What happens between `npx playwright test` and the report, traced from the microsoft/playwright source (the test runner alone is about 27,000 lines of TypeScript). Read it to understand flaky retries, timeouts that fire in hooks, and why a `beforeAll` can run more than once.",
+ "status": "As built: microsoft/playwright main at commit 820620c (1 Nov 2026). Worker restart, retry placement, hook timeouts and beforeAll re-runs checked by probe against @playwright/test 1.64.1.",
+ "sections": [
+  {
+   "heading": "The whole run",
+   "blocks": [
+    {
+     "type": "p",
+     "text": "The runner process never executes your tests. It loads and filters them, splits them into groups, and hands each group to a worker process. Projects that depend on other projects wait in later phases."
+    },
+    {
+     "type": "figure",
+     "kind": "graph",
+     "title": "From npx playwright test to the report",
+     "alt": "Top to bottom: load config, global setup, load and filter test files, plan phases by project dependency, split into test groups, dispatch groups to workers, report.",
+     "caption": "The main path runs down the middle. A failing setup project stops its dependents on the left; the dispatcher loop on the right is shown in detail in the next figures.",
+     "legend": {
+      "attention": "Behaviour that surprises people",
+      "danger": "Tests that will not run",
+      "good": "What you get back"
+     },
+     "nodes": [
+      {
+       "key": "cli",
+       "at": [
+        1,
+        0
+       ],
+       "shape": "terminal",
+       "title": "npx playwright test",
+       "tip": "CLI flags such as --workers, --retries or --timeout override the config file, which overrides the defaults.",
+       "source": "packages/playwright/src/common/config.ts#workers: resolveWorkers(takeFirst(configCLIOverrides.debug ? 1 : undefined, configCLIOverrides.workers, userConfig.workers, '50%')),",
+       "id": "B1"
+      },
+      {
+       "key": "setup",
+       "at": [
+        1,
+        1
+       ],
+       "title": "Global setup",
+       "lines": [
+        "clear output dirs, start webServer, globalSetup"
+       ],
+       "tip": "The test-results folder is emptied first. Plugins such as webServer start here, then your globalSetup files. Your globalTeardown files are queued here too and run at the very end.",
+       "source": "packages/playwright/src/runner/tasks.ts#...config.globalSetups.map(file => createGlobalSetupTask(file, config)),",
+       "id": "B2"
+      },
+      {
+       "key": "load",
+       "at": [
+        1,
+        2
+       ],
+       "title": "Load and filter test files",
+       "lines": [
+        "in the runner process"
+       ],
+       "tip": "Every test file is imported once in the runner just to collect test titles. Code at the top level of a spec file therefore runs in the runner too, and again in every worker that loads the file.",
+       "source": "packages/playwright/src/runner/testRunner.ts#createLoadTask('in-process', { filterOnly: true, failOnLoadErrors: true }),",
+       "id": "B3"
+      },
+      {
+       "key": "phases",
+       "at": [
+        1,
+        3
+       ],
+       "title": "Plan phases by project dependencies",
+       "tip": "A phase holds every project whose dependencies finished in earlier phases. Phases run one after another; projects inside a phase share the workers.",
+       "source": "packages/playwright/src/runner/tasks.ts#Find all projects that have all their dependencies processed by previous phases.",
+       "id": "B4"
+      },
+      {
+       "key": "depfail",
+       "at": [
+        0,
+        3
+       ],
+       "tone": "danger",
+       "title": "Dependents of a failed project skipped",
+       "tip": "If any test in a setup project fails, projects that depend on it are not run at all in later phases.",
+       "source": "packages/playwright/src/runner/tasks.ts#const hasFailedDeps = project.deps.some(p => !successfulProjects.has(p));",
+       "id": "B5"
+      },
+      {
+       "key": "groups",
+       "at": [
+        1,
+        4
+       ],
+       "tone": "attention",
+       "title": "Split into test groups",
+       "lines": [
+        "by default: one group per file"
+       ],
+       "tip": "Without fullyParallel or test.describe.configure({ mode: 'parallel' }), all tests of one file form one group and run in order in one worker. Files run in parallel; tests inside a file do not.",
+       "source": "packages/playwright/src/runner/testGroups.ts#withRequireFile.general.tests.push(test);",
+       "id": "B6"
+      },
+      {
+       "key": "dispatch",
+       "at": [
+        1,
+        5
+       ],
+       "title": "Dispatch groups to workers",
+       "lines": [
+        "prefer a free worker with the same hash"
+       ],
+       "tip": "A worker can be reused for the next group only if its worker hash matches: same project and same worker-scoped fixture options. Otherwise the worker is stopped and a new one starts.",
+       "source": "packages/playwright/src/runner/dispatcher.ts#// 2. Find a worker with the same hash, or just some free worker.",
+       "id": "B7"
+      },
+      {
+       "key": "worker",
+       "at": [
+        2,
+        5
+       ],
+       "title": "Worker runs the group",
+       "lines": [
+        "see the next figure"
+       ],
+       "tip": "A separate Node.js process. It loads the spec file again, then runs each test of the group in order with its hooks and fixtures.",
+       "source": "packages/playwright/src/worker/workerMain.ts#async runTestGroup(runPayload: ipc.RunPayload) {",
+       "id": "B8"
+      },
+      {
+       "key": "requeue",
+       "at": [
+        2,
+        6
+       ],
+       "tone": "attention",
+       "title": "Failure: worker stopped, rest re-queued",
+       "tip": "After any failed test the worker process is thrown away. The group's remaining tests and the retry go back to the front of the queue and start in a fresh worker.",
+       "source": "packages/playwright/src/runner/dispatcher.ts#void worker.stop(true /* didFail */);",
+       "id": "B9"
+      },
+      {
+       "key": "report",
+       "at": [
+        1,
+        7
+       ],
+       "shape": "terminal",
+       "tone": "good",
+       "title": "Report",
+       "tip": "Reporters receive every result as it happens, then onEnd. A test that failed and then passed on retry is reported as flaky, which still counts as passing unless failOnFlakyTests is set.",
+       "source": "packages/playwright/src/common/config.ts#failOnFlakyTests: takeFirst(configCLIOverrides.failOnFlakyTests, userConfig.failOnFlakyTests, false),",
+       "id": "B10"
+      }
+     ],
+     "edges": [
+      {
+       "from": "cli",
+       "to": "setup",
+       "tip": "The resolved config, with CLI overrides applied.",
+       "id": "L1"
+      },
+      {
+       "from": "setup",
+       "to": "load",
+       "tip": "Environment set up by globalSetup is visible to workers started later.",
+       "id": "L2"
+      },
+      {
+       "from": "load",
+       "to": "phases",
+       "tip": "The filtered tree of projects, files, suites and tests.",
+       "id": "L3"
+      },
+      {
+       "from": "phases",
+       "to": "depfail",
+       "label": "dependency failed",
+       "tone": "danger",
+       "tip": "Checked when each later phase starts.",
+       "id": "L4"
+      },
+      {
+       "from": "phases",
+       "to": "groups",
+       "tip": "Each project in the phase is split separately.",
+       "id": "L5"
+      },
+      {
+       "from": "groups",
+       "to": "dispatch",
+       "tip": "One queue of groups per phase; with --shuffle the groups are shuffled first.",
+       "id": "L6"
+      },
+      {
+       "from": "dispatch",
+       "to": "worker",
+       "label": "group",
+       "tip": "At most `workers` groups run at once; the default is half the CPU cores.",
+       "id": "L7"
+      },
+      {
+       "from": "worker",
+       "to": "dispatch",
+       "label": "all passed",
+       "from_side": "top",
+       "to_side": "top",
+       "dash": true,
+       "tip": "The worker stays alive and can take the next group with the same hash.",
+       "id": "L8"
+      },
+      {
+       "from": "worker",
+       "to": "requeue",
+       "label": "a test failed",
+       "tone": "attention",
+       "tip": "The worker reports which tests are left over.",
+       "id": "L9"
+      },
+      {
+       "from": "requeue",
+       "to": "dispatch",
+       "label": "new worker",
+       "to_side": "bottom",
+       "tip": "Remaining tests go to the front of the queue.",
+       "id": "L10"
+      },
+      {
+       "from": "dispatch",
+       "to": "report",
+       "label": "queue empty",
+       "tip": "When every phase is done, global teardown runs and the reporters finish.",
+       "id": "L11",
+       "from_side": "left",
+       "to_side": "left"
+      }
+     ],
+     "id": "F1"
+    }
+   ],
+   "id": "S1"
+  },
+  {
+   "heading": "One test inside a worker",
+   "blocks": [
+    {
+     "type": "p",
+     "text": "Each test gets a timeout (30 seconds by default). Not every hook spends from it: `beforeEach` and test fixtures do, `beforeAll` and `afterAll` get their own, and the after-hooks get an extra allowance."
+    },
+    {
+     "type": "figure",
+     "kind": "graph",
+     "title": "What runs around one test",
+     "alt": "Top to bottom: beforeAll with its own timeout, then beforeEach and fixtures sharing the test timeout, the test function, after-each hooks with an extra timeout, afterAll when leaving the suite, and on failure the worker shuts down.",
+     "caption": "Amber steps spend the test's own timeout. Green steps get a separate one. After a failure the whole worker shuts down, which is why the next test's beforeAll runs again.",
+     "legend": {
+      "attention": "Spends the test timeout",
+      "good": "Has its own timeout",
+      "danger": "Worker shuts down"
+     },
+     "nodes": [
+      {
+       "key": "start",
+       "at": [
+        0,
+        0
+       ],
+       "shape": "terminal",
+       "title": "Next test in the group",
+       "tip": "Tests run in the order of the group, which is file order for a normal file.",
+       "id": "B1"
+      },
+      {
+       "key": "beforeall",
+       "at": [
+        0,
+        1
+       ],
+       "tone": "good",
+       "title": "beforeAll hooks",
+       "lines": [
+        "only if not already run in this worker"
+       ],
+       "tip": "Each beforeAll hook gets a fresh time slot of the project timeout, separate from the test's. It runs once per worker, so after a worker restart it runs again. Probed: a beforeAll ran in worker 0 and again in worker 1 after a failure.",
+       "source": "packages/playwright/src/worker/workerMain.ts#// Separate time slot for each beforeAll/afterAll hook.",
+       "id": "B2"
+      },
+      {
+       "key": "beforeeach",
+       "at": [
+        0,
+        2
+       ],
+       "tone": "attention",
+       "title": "beforeEach hooks and test fixtures",
+       "lines": [
+        "page, context, your own fixtures"
+       ],
+       "tip": "These share the test's timeout with the test body. Probed: a 1.5 s beforeEach plus a 1 s test failed a 2 s timeout, while the same pair with beforeAll passed.",
+       "source": "packages/playwright/src/worker/workerMain.ts#// Setup fixtures required by the test.",
+       "id": "B3"
+      },
+      {
+       "key": "body",
+       "at": [
+        0,
+        3
+       ],
+       "tone": "attention",
+       "title": "Your test function",
+       "tip": "Each expect() that waits (toBeVisible, toHaveText…) has its own 5 s limit, but all of them still sit inside the test timeout.",
+       "source": "packages/playwright/src/matchers/expect.ts#const defaultExpectTimeout = 5000;",
+       "id": "B4"
+      },
+      {
+       "key": "after",
+       "at": [
+        0,
+        4
+       ],
+       "tone": "good",
+       "title": "afterEach hooks, test fixture teardown",
+       "tip": "Run even when the test failed or timed out, with an extra allowance equal to the larger of the project and test timeouts. This is where screenshots, videos and traces are saved.",
+       "source": "packages/playwright/src/worker/workerMain.ts#// After hooks get an additional timeout.",
+       "id": "B5"
+      },
+      {
+       "key": "afterall",
+       "at": [
+        0,
+        5
+       ],
+       "tone": "good",
+       "title": "afterAll if leaving the suite",
+       "tip": "Runs when the next test belongs to another describe block, or right away if this test failed.",
+       "source": "packages/playwright/src/worker/workerMain.ts#if (!nextSuites.has(suite) || testInfo._isFailure()) {",
+       "id": "B6"
+      },
+      {
+       "key": "failed",
+       "at": [
+        0,
+        6
+       ],
+       "shape": "decision",
+       "title": "Did the test fail?",
+       "tip": "Includes timeouts and unexpected passes of tests marked test.fail().",
+       "id": "B7"
+      },
+      {
+       "key": "shutdown",
+       "at": [
+        1,
+        6
+       ],
+       "tone": "danger",
+       "title": "Worker cleanup and exit",
+       "lines": [
+        "remaining afterAll, worker fixtures torn down"
+       ],
+       "tip": "The worker refuses to run further tests: state from the failed test could leak into them. Worker-scoped fixtures, such as a shared browser or login, are torn down and must be built again in the next worker.",
+       "source": "packages/playwright/src/worker/workerMain.ts#// Run all remaining \"afterAll\" hooks and teardown all fixtures when worker is shutting down.",
+       "id": "B8"
+      }
+     ],
+     "edges": [
+      {
+       "from": "start",
+       "to": "beforeall",
+       "tip": "Suites the test belongs to, from the outermost describe inwards.",
+       "id": "L1"
+      },
+      {
+       "from": "beforeall",
+       "to": "beforeeach",
+       "tip": "The test's own timer starts here.",
+       "id": "L2"
+      },
+      {
+       "from": "beforeeach",
+       "to": "body",
+       "tip": "Fixture values are passed in as the test's arguments.",
+       "id": "L3"
+      },
+      {
+       "from": "body",
+       "to": "after",
+       "tip": "Also taken when the body throws or times out.",
+       "id": "L4"
+      },
+      {
+       "from": "after",
+       "to": "afterall",
+       "tip": "Hooks run in reverse order of their suites.",
+       "id": "L5"
+      },
+      {
+       "from": "afterall",
+       "to": "failed",
+       "tip": "The result is final at this point.",
+       "id": "L6"
+      },
+      {
+       "from": "failed",
+       "to": "start",
+       "label": "no",
+       "from_side": "left",
+       "to_side": "left",
+       "dash": true,
+       "tip": "The same worker continues with the next test; worker fixtures stay alive.",
+       "id": "L7"
+      },
+      {
+       "from": "failed",
+       "to": "shutdown",
+       "label": "yes",
+       "tone": "danger",
+       "tip": "The dispatcher re-queues what is left for a fresh worker.",
+       "id": "L8"
+      }
+     ],
+     "id": "F2"
+    },
+    {
+     "type": "figure",
+     "kind": "sequence",
+     "title": "Worked example: one flaky test, one worker",
+     "alt": "The runner gives worker 0 a file with tests one, two and three. Two fails, worker 0 shuts down, worker 1 starts and runs the retry of two and then three.",
+     "caption": "Exactly what a probe printed with workers: 1 and retries: 1. The retry and the remaining test share the new worker.",
+     "participants": [
+      {
+       "key": "runner",
+       "title": "Runner (dispatcher)",
+       "tone": "hub",
+       "tip": "The main process; it never runs test code.",
+       "id": "B1"
+      },
+      {
+       "key": "w0",
+       "title": "Worker 0 (pid 392)",
+       "tip": "The first worker process.",
+       "id": "B2"
+      },
+      {
+       "key": "w1",
+       "title": "Worker 1 (pid 403)",
+       "tip": "A brand-new process started after the failure.",
+       "id": "B3"
+      }
+     ],
+     "steps": [
+      {
+       "from": "runner",
+       "to": "w0",
+       "label": "run group: one, two, three",
+       "tip": "All three tests are in one file, so they form one group.",
+       "id": "L1"
+      },
+      {
+       "at": "w0",
+       "text": "one ✓   two ✘ (attempt 1)",
+       "tip": "two throws on its first attempt only.",
+       "id": "N1"
+      },
+      {
+       "from": "w0",
+       "to": "runner",
+       "label": "done: failed, three left",
+       "dash": true,
+       "tip": "The worker reports the failure and the test it did not run.",
+       "id": "L2"
+      },
+      {
+       "from": "runner",
+       "to": "w0",
+       "label": "stop",
+       "tone": "attention",
+       "tip": "A worker that saw a failure is never reused.",
+       "id": "L3"
+      },
+      {
+       "from": "runner",
+       "to": "w1",
+       "label": "run group: three + retry of two",
+       "tone": "attention",
+       "tip": "The leftover test and the retry go to the front of the queue as one job. The worker runs them in file order.",
+       "id": "L4"
+      },
+      {
+       "at": "w1",
+       "text": "beforeAll and worker fixtures run again",
+       "tip": "Nothing from worker 0 survives, so any login or seeding repeats.",
+       "id": "N2"
+      },
+      {
+       "at": "w1",
+       "text": "two ✓ (retry #1)   three ✓",
+       "tip": "two is reported as flaky.",
+       "id": "N3"
+      },
+      {
+       "from": "w1",
+       "to": "runner",
+       "label": "done: all passed",
+       "dash": true,
+       "tip": "Worker 1 can now take another group with the same hash.",
+       "id": "L5"
+      }
+     ],
+     "id": "F3"
+    }
+   ],
+   "id": "S2"
+  },
+  {
+   "heading": "Defaults that surprise testers",
+   "blocks": [
+    {
+     "type": "table",
+     "title": "Defaults worth knowing",
+     "headers": [
+      "Setting",
+      "Default",
+      "What it means for you"
+     ],
+     "rows": [
+      {
+       "cells": [
+        "Test timeout",
+        "30 s",
+        "Covers beforeEach, test fixtures and the test body together. A slow login in beforeEach eats your test's time."
+       ],
+       "source": "packages/playwright/src/common/config.ts#export const defaultTimeout = 30000;",
+       "id": "R1"
+      },
+      {
+       "cells": [
+        "expect timeout",
+        "5 s",
+        "Per waiting assertion, still inside the 30 s test timeout."
+       ],
+       "source": "packages/playwright/src/matchers/expect.ts#const defaultExpectTimeout = 5000;",
+       "id": "R2"
+      },
+      {
+       "cells": [
+        "Retries",
+        "0",
+        "A flaky test fails the run. Set retries in CI, and watch the flaky count."
+       ],
+       "source": "packages/playwright/src/common/config.ts#retries: takeFirst(configCLIOverrides.retries, projectConfig.retries, config.retries, 0),",
+       "id": "R3"
+      },
+      {
+       "cells": [
+        "Workers",
+        "50% of CPU cores",
+        "A 2-core CI runner gets 1 worker. Set workers explicitly if your CI machine differs from your laptop."
+       ],
+       "source": "packages/playwright/src/common/config.ts#return Math.max(1, Math.floor(cpus * (percent / 100)));",
+       "id": "R4"
+      },
+      {
+       "cells": [
+        "fullyParallel",
+        "false",
+        "Tests in one file run one after another in one worker. Only files run in parallel."
+       ],
+       "source": "packages/playwright/src/common/config.ts#fullyParallel: takeFirst(configCLIOverrides.fullyParallel, userConfig.fullyParallel, false),",
+       "id": "R5"
+      },
+      {
+       "cells": [
+        "Retry strategy",
+        "immediate",
+        "The retry runs straight away in a fresh worker, together with the rest of the file. 'isolated' runs retries one at a time at the end instead."
+       ],
+       "source": "packages/playwright/src/common/config.ts#this.retryStrategy = takeFirst(userConfig.retryStrategy, 'immediate');",
+       "id": "R6"
+      },
+      {
+       "cells": [
+        "After a failure",
+        "New worker",
+        "beforeAll and worker-scoped fixtures run again for the rest of the file."
+       ],
+       "source": "packages/playwright/src/runner/dispatcher.ts#// 4. When worker encounters error, we stop it and create a new one.",
+       "id": "R7"
+      },
+      {
+       "cells": [
+        "globalTimeout",
+        "0 (none)",
+        "A hung run is only stopped by your CI's own job timeout."
+       ],
+       "source": "packages/playwright/src/common/config.ts#globalTimeout: takeFirst(configCLIOverrides.debug ? 0 : undefined, configCLIOverrides.globalTimeout, userConfig.globalTimeout, 0),",
+       "id": "R8"
+      },
+      {
+       "cells": [
+        "maxFailures",
+        "0 (no limit)",
+        "Every test runs even when the app is clearly down. Set it to fail fast in CI."
+       ],
+       "source": "packages/playwright/src/common/config.ts#maxFailures: takeFirst(configCLIOverrides.debug ? 1 : undefined, configCLIOverrides.maxFailures, userConfig.maxFailures, 0),",
+       "id": "R9"
+      }
+     ],
+     "id": "T1"
+    }
+   ],
+   "id": "S3"
+  }
+ ],
+ "_id_counters": {
+  "S": 3,
+  "F": 3,
+  "T": 1,
+  "F1.B": 10,
+  "F1.L": 11,
+  "F2.B": 8,
+  "F2.L": 8,
+  "F3.B": 3,
+  "F3.L": 5,
+  "F3.N": 3,
+  "T1.R": 9
+ }
+}
