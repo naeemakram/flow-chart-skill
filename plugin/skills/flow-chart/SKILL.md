@@ -11,7 +11,7 @@ The spec is the source; the HTML is generated. Lay nothing out by hand: scripts 
 
 ## Before you start
 
-- **Follow the project's data rules.** A chart gets read and shared widely. Read the project's CLAUDE.md first, and never put personal data, credentials or real customer values in a spec. Use invented values in worked examples.
+- **Follow the project's data rules.** A chart gets read and shared widely. Read the project's CLAUDE.md first, and never put personal data, login details or real customer values in a spec. Use invented values in worked examples.
 - **Existing chart?** If the user quotes an ID or asks for a change, skip to [Changing a chart](#changing-a-chart).
 - **Choose the document type.** Read [references/document-types.md](references/document-types.md). "How does it work when it runs" is a flow document. "How is it built and why" is a system design document. Ask only if the request really could be either and the difference matters.
 
@@ -49,7 +49,7 @@ This validates the spec, writes IDs back into it, and reports line crossings, la
 
 ## 4. Check it in a browser
 
-This step needs Python Playwright (`pip install playwright && python -m playwright install chromium`). To use a Chromium that is already installed, set `FLOWCHART_CHROMIUM` to its path.
+This step needs the Python package `playwright` and its Chromium browser (`python -m playwright install chromium`). To use a Chromium that is already installed, set `FLOWCHART_CHROMIUM` to its path.
 
 ```bash
 python <skill>/scripts/check_page.py docs/name.html --shots <scratch-folder>

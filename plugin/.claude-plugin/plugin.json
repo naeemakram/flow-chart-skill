@@ -1,6 +1,6 @@
 {
   "name": "flow-chart",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Draw how a codebase really works as interactive flow charts, sequence, state, class and Venn diagrams, where every box and line has a stable ID you can discuss with Claude.",
   "author": {
     "name": "Naeem Malik",

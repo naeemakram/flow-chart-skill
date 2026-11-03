@@ -97,7 +97,11 @@ git clone https://github.com/naeemakram/flow-chart-skill.git
 ```
 
 ```bash
-mkdir -p ~/.claude/skills && cp -r flow-chart-skill/skills/flow-chart ~/.claude/skills/
+mkdir -p ~/.claude/skills
+```
+
+```bash
+cp -r flow-chart-skill/plugin/skills/flow-chart ~/.claude/skills/
 ```
 
 To install it for one project only, copy it into that project's `.claude/skills/` instead.
@@ -109,11 +113,7 @@ Download `flow-chart.zip` from the [latest release](../../releases/latest), then
 ### Requirements
 
 - Python 3.9+ to render. It uses only the standard library.
-- Optional, for the browser check:
-
-  ```bash
-  pip install playwright && python -m playwright install chromium
-  ```
+- Optional, for the browser check: install the Python package `playwright`, then its Chromium browser with `python -m playwright install chromium`.
 
 ## Use
 
@@ -143,18 +143,21 @@ The spec is the source of truth. Commit it next to the page, and Claude edits th
 | Venn (2–3 sets) | Overlaps: who holds which data, what each test level proves |
 | Table | Timers, failure modes, "when X happens during Y" |
 
-The skill also chooses between two document shapes: a **flow document** ("how does it work when it runs?") and a **system design document** ("how is it built, and why this way?"). See [`references/document-types.md`](skills/flow-chart/references/document-types.md).
+The skill also chooses between two document shapes: a **flow document** ("how does it work when it runs?") and a **system design document** ("how is it built, and why this way?"). See [`references/document-types.md`](plugin/skills/flow-chart/references/document-types.md).
 
 ## Repository layout
 
 ```
-.claude-plugin/            plugin and marketplace manifests, icon
-skills/flow-chart/
-  SKILL.md                 instructions Claude follows
-  references/              spec format and document types
-  scripts/render.py        spec → HTML, IDs, layout, source checks
-  scripts/check_page.py    optional browser check (Playwright)
-  assets/                  page CSS and JS, inlined into every page
+.claude-plugin/            marketplace manifest
+plugin/                    the plugin itself: the only folder that gets installed
+  .claude-plugin/          plugin manifest and icon
+  README.md                short README for the plugin directory
+  skills/flow-chart/
+    SKILL.md               instructions Claude follows
+    references/            spec format and document types
+    scripts/render.py      spec → HTML, IDs, layout, source checks
+    scripts/check_page.py  optional browser check (Playwright)
+    assets/                page CSS and JS, inlined into every page
 examples/                  example pages
   requests/                the psf/requests example: spec + page
   playwright/              the Playwright test runner example: spec + page

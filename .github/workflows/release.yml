@@ -2,15 +2,14 @@ name: Release
 
 # Publishes a GitHub Release with flow-chart.zip for the version in plugin.json.
 # - Push to main: if no release exists yet for that version, create it (and its tag).
-#   To release a new version, bump "version" in .claude-plugin/plugin.json.
+#   To release a new version, bump "version" in plugin/.claude-plugin/plugin.json.
 # - Tag push or a release made in the browser: build the zip and attach it.
 
 on:
   push:
     branches: [main]
     paths:
-      - ".claude-plugin/plugin.json"
-      - "skills/**"
+      - "plugin/**"
       - ".github/release-notes/**"
       - ".github/workflows/release.yml"
     tags: ["v*"]
@@ -31,13 +30,13 @@ jobs:
       - name: Work out the version
         id: v
         run: |
-          want="v$(python3 -c 'import json;print(json.load(open(".claude-plugin/plugin.json"))["version"])')"
+          want="v$(python3 -c 'import json;print(json.load(open("plugin/.claude-plugin/plugin.json"))["version"])')"
           if [ "$GITHUB_REF_TYPE" = "tag" ] || [ "$GITHUB_EVENT_NAME" = "release" ]; then
             test "$GITHUB_REF_NAME" = "$want" || { echo "Tag $GITHUB_REF_NAME but plugin.json says $want"; exit 1; }
           fi
           echo "tag=$want" >> "$GITHUB_OUTPUT"
       - name: Build flow-chart.zip for the Claude apps
-        run: cd skills && zip -r -X ../flow-chart.zip flow-chart -x '*/__pycache__/*'
+        run: cd plugin/skills && zip -r -X ../../flow-chart.zip flow-chart -x '*/__pycache__/*'
       - name: Publish the release, or add the zip to an existing one
         env:
           GH_TOKEN: ${{ github.token }}

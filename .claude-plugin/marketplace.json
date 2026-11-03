@@ -10,7 +10,7 @@
   "plugins": [
     {
       "name": "flow-chart",
-      "source": "./",
+      "source": "./plugin",
       "description": "Draw how a codebase really works as interactive diagrams with stable IDs you can discuss with Claude.",
       "category": "documentation"
     }

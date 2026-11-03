@@ -7,8 +7,8 @@ The renderer estimates text widths; this measures them. It reports text outside 
 on top of boxes or each other, missing tooltips, a broken copy, and sideways page scroll, in light,
 dark and phone widths. Exit code 1 if anything failed.
 
-Needs Python Playwright with Chromium:
-    pip install playwright && python -m playwright install chromium
+Needs the Python package playwright and its Chromium browser
+(python -m playwright install chromium).
 To use a Chromium you already have, set FLOWCHART_CHROMIUM=/path/to/chrome.
 """
 import argparse
@@ -19,8 +19,8 @@ from pathlib import Path
 try:
     from playwright.sync_api import sync_playwright
 except ImportError:
-    sys.exit("check_page.py needs Python Playwright. Install it with:\n"
-             "    pip install playwright && python -m playwright install chromium\n"
+    sys.exit("check_page.py needs the Python package playwright and its Chromium browser\n"
+             "(python -m playwright install chromium).\n"
              "Or skip this step and check the page by eye in a browser.")
 
 MEASURE = r"""
